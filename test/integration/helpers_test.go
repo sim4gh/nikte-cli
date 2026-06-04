@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 	// CI mode: seed config from environment
 	if rt := os.Getenv("OIO_REFRESH_TOKEN"); rt != "" {
 		config.Set("refresh_token", rt)
-		config.Set("baseurl", "https://auth.yumaverse.com")
+		config.Set("baseurl", "https://auth.nikte.co")
 	}
 
 	// Check if we have a refresh token at all
