@@ -24,6 +24,7 @@ func addShortcutCommands() {
 	cCmd.Flags().BoolVarP(&addPublic, "public", "p", false, "Create public share on add (Pro)")
 	cCmd.Flags().StringVar(&addPassword, "password", "", "Password-protected share (Pro)")
 	cCmd.Flags().BoolVar(&addQR, "qr", false, "Print a scannable QR code of the share URL (with --public/--password)")
+	cCmd.Flags().IntVar(&addMaxViews, "max-views", 0, "Burn-after-read: delete the share after N views (with --public/--password)")
 
 	rootCmd.AddCommand(cCmd)
 
@@ -45,6 +46,7 @@ func addShortcutCommands() {
 	scCmd.Flags().BoolVarP(&addFullscreen, "fullscreen", "f", false, "Capture full screen")
 	scCmd.Flags().StringVar(&addWatch, "watch", "", "Continuous capture mode (optional: interval in seconds)")
 	scCmd.Flags().BoolVar(&addQR, "qr", false, "Print a scannable QR code of the share URL (with --public/--password)")
+	scCmd.Flags().IntVar(&addMaxViews, "max-views", 0, "Burn-after-read: delete the share after N views (with --public/--password)")
 
 	rootCmd.AddCommand(scCmd)
 
@@ -63,6 +65,7 @@ func addShortcutCommands() {
 	pCmd.Flags().StringVar(&shareTitle, "title", "", "Share title for social previews")
 	pCmd.Flags().StringVar(&shareDesc, "desc", "", "Share description for social previews")
 	pCmd.Flags().BoolVar(&shareQR, "qr", false, "Print a scannable QR code of the share URL")
+	pCmd.Flags().IntVar(&shareMaxViews, "max-views", 0, "Burn-after-read: delete the link after N views")
 
 	rootCmd.AddCommand(pCmd)
 }

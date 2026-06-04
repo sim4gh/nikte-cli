@@ -27,6 +27,7 @@ var (
 	addFullscreen bool
 	addWatch      string
 	addQR         bool
+	addMaxViews   int
 )
 
 const (
@@ -64,6 +65,7 @@ Examples:
 	addCmd.Flags().BoolVarP(&addFullscreen, "fullscreen", "f", false, "Capture full screen (for screenshot)")
 	addCmd.Flags().StringVar(&addWatch, "watch", "", "Continuous screenshot mode (optional: interval in seconds)")
 	addCmd.Flags().BoolVar(&addQR, "qr", false, "Print a scannable QR code of the share URL (with --public/--password)")
+	addCmd.Flags().IntVar(&addMaxViews, "max-views", 0, "Burn-after-read: delete the share after N views (with --public/--password)")
 
 	rootCmd.AddCommand(addCmd)
 }
@@ -486,6 +488,9 @@ func createShare(itemID, itemType string) error {
 	}
 	if addDesc != "" {
 		body["description"] = addDesc
+	}
+	if addMaxViews > 0 {
+		body["maxViews"] = addMaxViews
 	}
 
 	resp, err := api.Post(endpoint, body)

@@ -2,12 +2,14 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
+	"github.com/olekukonko/tablewriter"
 	"github.com/sim4gh/nikte-cli/internal/api"
 	"github.com/sim4gh/nikte-cli/internal/util"
 	"github.com/spf13/cobra"
@@ -20,6 +22,7 @@ var (
 	shareTitle    string
 	shareDesc     string
 	shareQR       bool
+	shareMaxViews int
 )
 
 const defaultShareExpiryDays = 1
@@ -48,6 +51,17 @@ All shares use share.nikte.co/{id}`,
 	shareCmd.Flags().StringVar(&shareTitle, "title", "", "Share title for social previews")
 	shareCmd.Flags().StringVar(&shareDesc, "desc", "", "Share description for social previews")
 	shareCmd.Flags().BoolVar(&shareQR, "qr", false, "Print a scannable QR code of the share URL")
+	shareCmd.Flags().IntVar(&shareMaxViews, "max-views", 0, "Burn-after-read: delete the link after N views")
+
+	// nk sh ls — list your shares with view counts (analytics)
+	shareListCmd := &cobra.Command{
+		Use:     "ls",
+		Short:   "List your shares with view counts",
+		Aliases: []string{"list"},
+		Args:    cobra.NoArgs,
+		RunE:    runShareList,
+	}
+	shareCmd.AddCommand(shareListCmd)
 
 	rootCmd.AddCommand(shareCmd)
 }
@@ -119,6 +133,7 @@ type shareData struct {
 	IsPublic    bool   `json:"isPublic"`
 	ExpiresAt   int64  `json:"expiresAt"`
 	Password    string `json:"password"`
+	MaxViews    *int   `json:"maxViews"`
 }
 
 func shareFile(id string) shareResult {
@@ -236,6 +251,10 @@ func buildShareBody() map[string]interface{} {
 		body["description"] = shareDesc
 	}
 
+	if shareMaxViews > 0 {
+		body["maxViews"] = shareMaxViews
+	}
+
 	return body
 }
 
@@ -265,6 +284,68 @@ func parseExpiresToDays(expiresStr string) int {
 	return days
 }
 
+func runShareList(cmd *cobra.Command, args []string) error {
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Suffix = " Loading shares..."
+	s.Start()
+
+	resp, err := api.Get("/shares")
+	s.Stop()
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("failed to list shares: %s", resp.GetString("message"))
+	}
+
+	var result struct {
+		Shares []struct {
+			ShareID   string `json:"shareId"`
+			ShareURL  string `json:"shareUrl"`
+			Type      string `json:"type"`
+			Filename  string `json:"filename"`
+			Title     string `json:"title"`
+			ViewCount int    `json:"viewCount"`
+			MaxViews  *int   `json:"maxViews"`
+			ExpiresAt int64  `json:"expiresAt"`
+		} `json:"shares"`
+	}
+	if err := resp.Unmarshal(&result); err != nil {
+		return err
+	}
+
+	if len(result.Shares) == 0 {
+		fmt.Println("No shares.")
+		return nil
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Share ID", "Type", "Views", "Label", "Expires", "URL"})
+	table.SetBorder(true)
+	table.SetAutoWrapText(false)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+	for _, sh := range result.Shares {
+		views := strconv.Itoa(sh.ViewCount)
+		if sh.MaxViews != nil {
+			views = fmt.Sprintf("%d/%d", sh.ViewCount, *sh.MaxViews)
+		}
+		label := sh.Title
+		if label == "" {
+			label = sh.Filename
+		}
+		expiry := "never"
+		if sh.ExpiresAt > 0 {
+			expiry = util.FormatExpiry(sh.ExpiresAt)
+		}
+		table.Append([]string{sh.ShareID, sh.Type, views, util.Truncate(label, 24), expiry, sh.ShareURL})
+	}
+	table.Render()
+
+	fmt.Printf("\nTotal: %d shares\n", len(result.Shares))
+	return nil
+}
+
 func displayShareSuccess(share shareData) {
 	fmt.Println("Share created!")
 	fmt.Println()
@@ -285,6 +366,14 @@ func displayShareSuccess(share shareData) {
 
 	if share.ExpiresAt > 0 {
 		fmt.Printf("Expires: %s\n", time.Unix(share.ExpiresAt, 0).Format("Jan 2, 2006 3:04 PM"))
+	}
+
+	if share.MaxViews != nil && *share.MaxViews > 0 {
+		noun := "views"
+		if *share.MaxViews == 1 {
+			noun = "view"
+		}
+		fmt.Printf("Burn after: %d %s\n", *share.MaxViews, noun)
 	}
 
 	fmt.Println()

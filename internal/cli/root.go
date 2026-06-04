@@ -99,7 +99,9 @@ Commands:
     └ -i, --interactive       Navigable list (arrows, copy, delete)
   rec                         Record screen to GIF, MP4, or MOV
   sh, share <id>              Share item (Pro only)
+    ├ ls                      List your shares with view counts
     ├ --qr                    Print a scannable QR of the share URL
+    ├ --max-views <n>         Burn-after-read: delete link after N views
     └ p <id>                  Quick public share shortcut
   trustyou                    Create a link for browser file uploads
   wa                          WhatsApp messaging commands
