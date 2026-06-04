@@ -25,6 +25,8 @@ func addShortcutCommands() {
 	cCmd.Flags().StringVar(&addPassword, "password", "", "Password-protected share (Pro)")
 	cCmd.Flags().BoolVar(&addQR, "qr", false, "Print a scannable QR code of the share URL (with --public/--password)")
 	cCmd.Flags().IntVar(&addMaxViews, "max-views", 0, "Burn-after-read: delete the share after N views (with --public/--password)")
+	cCmd.Flags().BoolVarP(&addEncrypt, "encrypt", "e", false, "Encrypt client-side before upload (zero-knowledge)")
+	cCmd.Flags().StringVar(&addEncPass, "enc-pass", "", "Encryption passphrase (else prompt or NIKTE_PASSPHRASE)")
 
 	rootCmd.AddCommand(cCmd)
 

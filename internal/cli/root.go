@@ -79,6 +79,7 @@ Commands:
     │   --ttl <duration>      Custom TTL (e.g., 1h, 7d, 30d)
     │   --public, -p          Create public share link on add
     │   --password <pass>     Password-protected share on add
+    │   --encrypt, -e         Encrypt client-side (zero-knowledge)
     │   --title <text>        Social preview title (with --public)
     │   --desc <text>         Social preview description
     │

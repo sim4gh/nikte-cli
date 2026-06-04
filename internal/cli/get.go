@@ -12,14 +12,16 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
 	"github.com/sim4gh/nikte-cli/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/crypto"
 	"github.com/sim4gh/nikte-cli/internal/util"
 	"github.com/spf13/cobra"
 )
 
 var (
-	getOutput string
-	getURL    bool
-	getCopy   bool
+	getOutput  string
+	getURL     bool
+	getCopy    bool
+	getEncPass string
 )
 
 func addGetCommand() {
@@ -41,6 +43,7 @@ Examples:
 	getCmd.Flags().StringVarP(&getOutput, "output", "o", "", "Save to specific directory")
 	getCmd.Flags().BoolVar(&getURL, "url", false, "Get URL only (do not download)")
 	getCmd.Flags().BoolVarP(&getCopy, "copy", "c", false, "Copy download URL to clipboard (do not download)")
+	getCmd.Flags().StringVar(&getEncPass, "enc-pass", "", "Passphrase to decrypt an encrypted item (else prompt or NIKTE_PASSPHRASE)")
 
 	rootCmd.AddCommand(getCmd)
 }
@@ -125,13 +128,27 @@ func getAsShort(id string, s *spinner.Spinner) (bool, error) {
 		return true, handleFileDownload(result.DownloadURL, result.Filename)
 	}
 
-	// Handle text type
+	// Handle text type — transparently decrypt client-side encrypted shorts.
+	content := result.Content
+	if crypto.IsEncryptedText(content) {
+		fmt.Println("\nThis item is encrypted.")
+		pass, err := resolvePassphrase(getEncPass, false)
+		if err != nil {
+			return true, err
+		}
+		decrypted, err := crypto.DecryptText(pass, content)
+		if err != nil {
+			return true, err
+		}
+		content = decrypted
+	}
+
 	fmt.Println()
-	fmt.Println(result.Content)
+	fmt.Println(content)
 	fmt.Println()
 
 	// Copy content to clipboard
-	if err := clipboard.WriteAll(result.Content); err == nil {
+	if err := clipboard.WriteAll(content); err == nil {
 		fmt.Println("(Content copied to clipboard)")
 	}
 
@@ -274,6 +291,46 @@ func handleFileDownload(downloadURL, filename string) error {
 	s.Stop()
 	fmt.Printf("Downloaded: %s\n", outputPath)
 
+	// Transparently decrypt client-side encrypted files (marked by the .nkenc
+	// suffix and a magic header).
+	if strings.HasSuffix(outputPath, crypto.FileSuffix) {
+		if err := decryptDownloadedFile(outputPath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// decryptDownloadedFile decrypts an encrypted file in place: it reads the
+// downloaded ciphertext, prompts for the passphrase, writes the plaintext to the
+// path with the .nkenc suffix stripped, and removes the ciphertext file.
+func decryptDownloadedFile(encPath string) error {
+	data, err := os.ReadFile(encPath)
+	if err != nil {
+		return err
+	}
+	if !crypto.IsEncryptedBytes(data) {
+		// Suffix present but not actually our format — leave as-is.
+		return nil
+	}
+
+	fmt.Println("This file is encrypted.")
+	pass, err := resolvePassphrase(getEncPass, false)
+	if err != nil {
+		return err
+	}
+	plaintext, err := crypto.DecryptBytes(pass, data)
+	if err != nil {
+		return err
+	}
+
+	outPath := strings.TrimSuffix(encPath, crypto.FileSuffix)
+	if err := os.WriteFile(outPath, plaintext, 0o600); err != nil {
+		return err
+	}
+	_ = os.Remove(encPath)
+	fmt.Printf("Decrypted: %s\n", outPath)
 	return nil
 }
 
