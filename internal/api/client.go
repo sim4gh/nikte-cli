@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sim4gh/oio-go/internal/auth"
-	"github.com/sim4gh/oio-go/internal/config"
+	"github.com/sim4gh/nikte-cli/internal/auth"
+	"github.com/sim4gh/nikte-cli/internal/config"
 )
 
 // Response represents an API response
@@ -34,7 +34,7 @@ var DefaultClient = &http.Client{
 }
 
 // DefaultBaseURL is the default API base URL
-const DefaultBaseURL = "https://auth.yumaverse.com"
+const DefaultBaseURL = "https://auth.nikte.co"
 
 // Request makes an authenticated API request
 func Request(path string, opts *RequestOptions) (*Response, error) {
@@ -59,14 +59,14 @@ func Request(path string, opts *RequestOptions) (*Response, error) {
 	if cfg != nil && cfg.BaseURL != "" {
 		baseURL = cfg.BaseURL
 	} else if requireAuth {
-		return nil, errors.New("not configured. Please run \"oio auth login\" first")
+		return nil, errors.New("not configured. Please run \"nk auth login\" first")
 	}
 
 	// Get valid token if auth is required
 	var idToken string
 	if requireAuth {
 		if cfg == nil || cfg.IDToken == "" {
-			return nil, errors.New("not authenticated. Please run \"oio auth login\" first")
+			return nil, errors.New("not authenticated. Please run \"nk auth login\" first")
 		}
 
 		// Check if token needs refresh

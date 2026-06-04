@@ -11,8 +11,8 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
-	"github.com/sim4gh/oio-go/internal/api"
-	"github.com/sim4gh/oio-go/internal/util"
+	"github.com/sim4gh/nikte-cli/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/util"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +29,7 @@ func addGetCommand() {
 		Long: `Get/download item by ID
 
 Examples:
-  oio g <id>                   Download item to current directory
+  nk g <id>                   Download item to current directory
     ├ --url                    Get download URL only
     ├ --copy                   Copy download URL to clipboard
     └ -o ~/Downloads           Save to specific directory`,

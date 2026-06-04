@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/sim4gh/oio-go/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/api"
 	"github.com/spf13/cobra"
 )
 

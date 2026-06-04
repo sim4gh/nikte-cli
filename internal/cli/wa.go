@@ -13,10 +13,10 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
 	"github.com/mdp/qrterminal/v3"
-	"github.com/sim4gh/oio-go/internal/platform"
-	"github.com/sim4gh/oio-go/internal/upload"
-	"github.com/sim4gh/oio-go/internal/util"
-	"github.com/sim4gh/oio-go/internal/whatsapp"
+	"github.com/sim4gh/nikte-cli/internal/platform"
+	"github.com/sim4gh/nikte-cli/internal/upload"
+	"github.com/sim4gh/nikte-cli/internal/util"
+	"github.com/sim4gh/nikte-cli/internal/whatsapp"
 	"github.com/spf13/cobra"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -37,13 +37,13 @@ func addWaCommands() {
 		Long: `WhatsApp messaging commands
 
 Examples:
-  oio wa link                          Link WhatsApp (scan QR code)
-  oio wa send 7778887788 "Hello!"      Send a message
-  oio wa send 7778887788               Send clipboard content
-  oio wa ls                            Show unread messages
-  oio wa ls --all                      Show all recent conversations
-  oio wa status                        Check link status
-  oio wa unlink                        Unlink WhatsApp`,
+  nk wa link                          Link WhatsApp (scan QR code)
+  nk wa send 7778887788 "Hello!"      Send a message
+  nk wa send 7778887788               Send clipboard content
+  nk wa ls                            Show unread messages
+  nk wa ls --all                      Show all recent conversations
+  nk wa status                        Check link status
+  nk wa unlink                        Unlink WhatsApp`,
 	}
 
 	linkCmd := &cobra.Command{
@@ -67,13 +67,13 @@ When sending a file or screenshot, any extra words become the caption.
 Phone number should include country code (e.g., 14255687870 for US).
 
 Examples:
-  oio wa send 14255687870 "Hello!"               # text message
-  oio wa send 14255687870                         # clipboard (image or text)
-  oio wa send 14255687870 photo.png "nice!"       # image with caption
-  oio wa send 14255687870 clip.mp4                # video
-  oio wa send 14255687870 report.pdf              # document
-  oio wa send 14255687870 sc "look at this"       # screenshot with caption
-  oio wa send +1-425-568-7870 "Hi"                # non-digits are stripped`,
+  nk wa send 14255687870 "Hello!"               # text message
+  nk wa send 14255687870                         # clipboard (image or text)
+  nk wa send 14255687870 photo.png "nice!"       # image with caption
+  nk wa send 14255687870 clip.mp4                # video
+  nk wa send 14255687870 report.pdf              # document
+  nk wa send 14255687870 sc "look at this"       # screenshot with caption
+  nk wa send +1-425-568-7870 "Hi"                # non-digits are stripped`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: runWaSend,
 	}
@@ -89,8 +89,8 @@ By default, only shows conversations with unread messages (the red badge).
 Use --all to show all recent conversations.
 
 Examples:
-  oio wa ls          # show unread messages
-  oio wa ls --all    # show all recent conversations`,
+  nk wa ls          # show unread messages
+  nk wa ls --all    # show all recent conversations`,
 		RunE: runWaLs,
 	}
 	lsCmd.Flags().BoolVar(&waLsAll, "all", false, "Show all recent conversations, not just unread")
@@ -120,7 +120,7 @@ func runWaLink(cmd *cobra.Command, args []string) error {
 
 	if client.Store.ID != nil {
 		fmt.Println("WhatsApp is already linked.")
-		fmt.Println("Run \"oio wa unlink\" first to re-link.")
+		fmt.Println("Run \"nk wa unlink\" first to re-link.")
 		return nil
 	}
 
@@ -182,9 +182,9 @@ func runWaLink(cmd *cobra.Command, args []string) error {
 				fmt.Println("\nWhatsApp linked successfully!")
 				return nil
 			case "timeout":
-				return fmt.Errorf("QR code expired. Run \"oio wa link\" again")
+				return fmt.Errorf("QR code expired. Run \"nk wa link\" again")
 			case "error":
-				return fmt.Errorf("QR channel error. Run \"oio wa link\" again")
+				return fmt.Errorf("QR channel error. Run \"nk wa link\" again")
 			}
 
 		case <-pairSuccess:
@@ -206,7 +206,7 @@ func runWaSend(cmd *cobra.Command, args []string) error {
 	}
 
 	if client.Store.ID == nil {
-		return fmt.Errorf("WhatsApp not linked. Run \"oio wa link\" first")
+		return fmt.Errorf("WhatsApp not linked. Run \"nk wa link\" first")
 	}
 
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
@@ -421,7 +421,7 @@ func runWaLs(cmd *cobra.Command, args []string) error {
 	}
 
 	if client.Store.ID == nil {
-		return fmt.Errorf("WhatsApp not linked. Run \"oio wa link\" first")
+		return fmt.Errorf("WhatsApp not linked. Run \"nk wa link\" first")
 	}
 
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
@@ -648,7 +648,7 @@ func runWaUnlink(cmd *cobra.Command, args []string) error {
 func runWaStatus(cmd *cobra.Command, args []string) error {
 	if !whatsapp.IsLinked() {
 		fmt.Println("WhatsApp: Not linked")
-		fmt.Println("Run \"oio wa link\" to connect your WhatsApp account.")
+		fmt.Println("Run \"nk wa link\" to connect your WhatsApp account.")
 		return nil
 	}
 
@@ -659,7 +659,7 @@ func runWaStatus(cmd *cobra.Command, args []string) error {
 
 	if client.Store.ID == nil {
 		fmt.Println("WhatsApp: Not linked (empty session)")
-		fmt.Println("Run \"oio wa link\" to connect your WhatsApp account.")
+		fmt.Println("Run \"nk wa link\" to connect your WhatsApp account.")
 		return nil
 	}
 
@@ -675,7 +675,7 @@ func runWaStatus(cmd *cobra.Command, args []string) error {
 	s.Stop()
 
 	if err != nil {
-		fmt.Println("  Status: Session expired (re-link with \"oio wa link\")")
+		fmt.Println("  Status: Session expired (re-link with \"nk wa link\")")
 	} else {
 		fmt.Println("  Status: Connected")
 		client.Disconnect()

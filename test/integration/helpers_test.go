@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sim4gh/oio-go/internal/api"
-	"github.com/sim4gh/oio-go/internal/auth"
-	"github.com/sim4gh/oio-go/internal/config"
+	"github.com/sim4gh/nikte-cli/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/auth"
+	"github.com/sim4gh/nikte-cli/internal/config"
 )
 
 func TestMain(m *testing.M) {

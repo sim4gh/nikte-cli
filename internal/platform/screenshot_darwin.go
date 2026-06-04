@@ -12,7 +12,7 @@ import (
 
 // CaptureScreenshot captures a screenshot (macOS only)
 func CaptureScreenshot(window, fullscreen bool) ([]byte, error) {
-	tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("oio-screenshot-%d.png", time.Now().UnixNano()))
+	tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("nk-screenshot-%d.png", time.Now().UnixNano()))
 	defer os.Remove(tempFile)
 
 	var args []string

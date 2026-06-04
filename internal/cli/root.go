@@ -8,13 +8,13 @@ import (
 )
 
 // Version is set at build time
-var Version = "2.7.0"
+var Version = "0.3.0"
 
 // rootCmd represents the base command
 var rootCmd = &cobra.Command{
-	Use:   "oio",
-	Short: "OIO CLI - Ephemeral content management",
-	Long: `OIO CLI - Ephemeral content management
+	Use:   "nk",
+	Short: "nikte CLI - Ephemeral content management",
+	Long: `nikte CLI - Ephemeral content management
 
 A fast CLI tool for managing ephemeral content with automatic TTL-based deletion.
 Upload text, files, and screenshots with optional sharing capabilities.`,
@@ -48,6 +48,7 @@ func init() {
 	addTrustMeCommand()
 	addShortcutCommands()
 	addWaCommands()
+	addLinkCommands()
 
 	// Custom root help with tree structure and inline aliases
 	defaultHelp := rootCmd.HelpFunc()
@@ -61,13 +62,13 @@ func init() {
 }
 
 func printRootHelp() {
-	fmt.Print(`OIO CLI - Ephemeral content management
+	fmt.Print(`nikte CLI - Ephemeral content management
 
 A fast CLI tool for managing ephemeral content with automatic TTL-based deletion.
 Upload text, files, and screenshots with optional sharing capabilities.
 
 Usage:
-  oio [command]
+  nk [command]
 
 Commands:
   a, add [input]              Add from clipboard, screenshot, file, or text
@@ -83,11 +84,11 @@ Commands:
     │   --desc <text>         Social preview description
     │
     │ Examples:
-    │   oio a                 Add from clipboard
-    │   oio a doc.pdf         Upload file (default: 24h TTL)
-    │   oio a doc.pdf --permanent --public
+    │   nk a                 Add from clipboard
+    │   nk a doc.pdf         Upload file (default: 24h TTL)
+    │   nk a doc.pdf --permanent --public
     │                         Upload permanently + get share URL
-    └   oio a "hello" -p     Add text + share publicly
+    └   nk a "hello" -p     Add text + share publicly
 
   auth                        Authentication commands
   config [subcommand]         Manage configuration
@@ -109,10 +110,10 @@ Commands:
     └ unlink                  Unlink WhatsApp
 
 Flags:
-  -h, --help      help for oio
-  -v, --version   version for oio
+  -h, --help      help for nk
+  -v, --version   version for nk
 
-Use "oio [command] --help" for more information about a command.
+Use "nk [command] --help" for more information about a command.
 `)
 }
 

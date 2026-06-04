@@ -160,7 +160,7 @@ func overlayDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, "Library", "Application Support", "oio", "overlay"), nil
+	return filepath.Join(home, "Library", "Application Support", "nikte", "overlay"), nil
 }
 
 // ensureOverlayBinary compiles the Swift overlay if needed, returns path to binary.

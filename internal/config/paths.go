@@ -17,7 +17,7 @@ func getConfigDir() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		configDir = filepath.Join(home, "Library", "Application Support", "oio")
+		configDir = filepath.Join(home, "Library", "Application Support", "nikte")
 
 	case "windows":
 		// Windows: %APPDATA%/oio
@@ -29,7 +29,7 @@ func getConfigDir() (string, error) {
 			}
 			appData = filepath.Join(home, "AppData", "Roaming")
 		}
-		configDir = filepath.Join(appData, "oio")
+		configDir = filepath.Join(appData, "nikte")
 
 	default:
 		// Linux and others: ~/.config/oio
@@ -41,7 +41,7 @@ func getConfigDir() (string, error) {
 			}
 			configHome = filepath.Join(home, ".config")
 		}
-		configDir = filepath.Join(configHome, "oio")
+		configDir = filepath.Join(configHome, "nikte")
 	}
 
 	return configDir, nil

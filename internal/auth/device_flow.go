@@ -11,7 +11,7 @@ import (
 )
 
 // BaseURL is the API base URL
-const BaseURL = "https://auth.yumaverse.com"
+const BaseURL = "https://auth.nikte.co"
 
 // DeviceAuthResponse represents the response from device authorization endpoint
 type DeviceAuthResponse struct {
@@ -44,7 +44,7 @@ func InitiateDeviceAuth() (*DeviceAuthResponse, error) {
 	}
 
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "oio")
+	req.Header.Set("User-Agent", "nikte")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -92,7 +92,7 @@ func PollForToken(deviceCode string, interval int) (*DeviceTokenResponse, error)
 
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.Header.Set("User-Agent", "oio")
+		req.Header.Set("User-Agent", "nikte")
 
 		resp, err := client.Do(req)
 		if err != nil {

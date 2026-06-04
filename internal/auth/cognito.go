@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sim4gh/oio-go/internal/config"
+	"github.com/sim4gh/nikte-cli/internal/config"
 )
 
 // Cognito configuration - hardcoded values from Node.js CLI
 const (
-	CognitoDomain = "oio-70676d07.auth.us-west-2.amazoncognito.com"
-	ClientID      = "5s958v222hp10p0qe86duks7ku"
+	CognitoDomain = "nikte-fcf57b8c.auth.us-west-2.amazoncognito.com"
+	ClientID      = "2385ict6amoluilmqns4jf0n73"
 	TokenEndpoint = "https://" + CognitoDomain + "/oauth2/token"
 )
 
@@ -38,7 +38,7 @@ type TokenErrorResponse struct {
 func RefreshTokens() (*TokenResponse, error) {
 	cfg := config.Get()
 	if cfg == nil || cfg.RefreshToken == "" {
-		return nil, errors.New("no refresh token available. Please run \"oio auth login\" again")
+		return nil, errors.New("no refresh token available. Please run \"nk auth login\" again")
 	}
 
 	data := url.Values{}
@@ -102,7 +102,7 @@ func RefreshTokens() (*TokenResponse, error) {
 func EnsureValidToken() (string, error) {
 	cfg := config.Get()
 	if cfg == nil || cfg.IDToken == "" {
-		return "", errors.New("not authenticated. Please run \"oio auth login\" first")
+		return "", errors.New("not authenticated. Please run \"nk auth login\" first")
 	}
 
 	if !IsTokenExpired(cfg.IDToken) {

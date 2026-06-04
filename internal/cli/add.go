@@ -9,10 +9,10 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
-	"github.com/sim4gh/oio-go/internal/api"
-	"github.com/sim4gh/oio-go/internal/platform"
-	"github.com/sim4gh/oio-go/internal/upload"
-	"github.com/sim4gh/oio-go/internal/util"
+	"github.com/sim4gh/nikte-cli/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/platform"
+	"github.com/sim4gh/nikte-cli/internal/upload"
+	"github.com/sim4gh/nikte-cli/internal/util"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +41,7 @@ func addAddCommand() {
 		Long: `Add item from clipboard, screenshot, file, or text
 
 Examples:
-  oio a                        Add from clipboard (text or image)
+  nk a                        Add from clipboard (text or image)
     ├ sc                       Take screenshot (macOS)
     ├ sc --watch               Continuous screenshot mode
     ├ sc --watch 5             Auto-capture every 5 seconds
@@ -74,7 +74,7 @@ func runAdd(cmd *cobra.Command, args []string) error {
 
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 
-	// Case 1: Screenshot command "oio a sc"
+	// Case 1: Screenshot command "nk a sc"
 	if input == "sc" {
 		return handleScreenshot(s)
 	}

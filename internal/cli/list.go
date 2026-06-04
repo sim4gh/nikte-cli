@@ -11,8 +11,8 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/olekukonko/tablewriter"
-	"github.com/sim4gh/oio-go/internal/api"
-	"github.com/sim4gh/oio-go/internal/util"
+	"github.com/sim4gh/nikte-cli/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/util"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +43,7 @@ func addListCommand() {
 		Long: `List all items
 
 Examples:
-  oio ls                       List all items
+  nk ls                       List all items
     ├ --type text              Show only text items
     ├ --search "important"     Search for "important"
     ├ --limit 5 --sort size    Top 5 by size

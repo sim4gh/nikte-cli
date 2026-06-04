@@ -153,6 +153,10 @@ oio
 │   ├── oio wa ls [--all]  # Unread (or all) conversations
 │   ├── oio wa status      # Link status
 │   └── oio wa unlink      # Clear session
+├── link <url>             # URL shortener → share.yumaverse.com/<code>
+│   ├── oio link <url>     # Shorten (--ttl 7d, --permanent; copies to clipboard)
+│   ├── oio link ls        # List your short links
+│   └── oio link d <code>  # Delete a short link
 ├── config                 # Configuration management
 ├── health                 # Health check
 ├── c                      # Quick clipboard (alias for "oio a")
@@ -182,6 +186,18 @@ concurrently; without it SQLite returns `SQLITE_BUSY` immediately.
 Paths may be absolute, relative (`./x.png`, `../x.png`), or use `~` even when
 quoted (`expandTilde` handles the quoted case; the shell handles unquoted).
 Extra words after a file/`sc` become the caption.
+
+### URL shortener (`link`)
+
+`internal/cli/link.go` talks to the backend's `/links` endpoints:
+- `oio link <url>` → `POST /links` (default 48h TTL; `--ttl`/`--permanent`).
+  `https://` is prepended when the scheme is missing. Prints and clipboard-copies
+  the `share.yumaverse.com/<code>` short URL.
+- `oio link ls` → `GET /links` (tablewriter of the user's links).
+- `oio link d <code>` → `DELETE /links/{code}` (confirm unless `--force`).
+
+The public redirect (`share.yumaverse.com/<code>` → 302) is served by the
+backend's `access-share-handler`, not the CLI.
 
 ## Adding New Commands
 

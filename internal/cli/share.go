@@ -8,8 +8,8 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
-	"github.com/sim4gh/oio-go/internal/api"
-	"github.com/sim4gh/oio-go/internal/util"
+	"github.com/sim4gh/nikte-cli/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/util"
 	"github.com/spf13/cobra"
 )
 
@@ -30,12 +30,12 @@ func addShareCommand() {
 		Long: `Share item (Pro only)
 
 Examples:
-  oio sh <id>                  Create public share link
+  nk sh <id>                  Create public share link
     ├ --password x             Password-protected share
     ├ --expires 7d             Share expires in 7 days
     └ --title "My Doc"         Share with title and description
 
-All shares use share.yumaverse.com/{id}`,
+All shares use share.nikte.co/{id}`,
 		Aliases: []string{"share"},
 		Args:    cobra.ExactArgs(1),
 		RunE:    runShare,
@@ -86,8 +86,8 @@ func runShare(cmd *cobra.Command, args []string) error {
 
 To share content:
   1. Upgrade to Pro for sharing capabilities
-  2. Use "oio files add <path>" to upload files
-  3. Use "oio sh <id>" to create share links`)
+  2. Use "nk files add <path>" to upload files
+  3. Use "nk sh <id>" to create share links`)
 	case "not_found":
 		return fmt.Errorf("no shareable item found with ID %q. Sharing is available for Pro files and shorts", id)
 	default:

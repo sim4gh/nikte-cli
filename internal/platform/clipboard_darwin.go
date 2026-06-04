@@ -18,7 +18,7 @@ func GetClipboardImage() ([]byte, error) {
 		return nil, fmt.Errorf("pngpaste is not installed. Install with: brew install pngpaste")
 	}
 
-	tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("oio-clipboard-%d.png", time.Now().UnixNano()))
+	tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("nk-clipboard-%d.png", time.Now().UnixNano()))
 	defer os.Remove(tempFile)
 
 	cmd := exec.Command("pngpaste", tempFile)

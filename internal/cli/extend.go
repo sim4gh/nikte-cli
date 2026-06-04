@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/sim4gh/oio-go/internal/api"
-	"github.com/sim4gh/oio-go/internal/util"
+	"github.com/sim4gh/nikte-cli/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/util"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +22,7 @@ func addExtendCommand() {
 		Long: `Extend TTL or make item permanent
 
 Examples:
-  oio extend <id>              Extend item TTL
+  nk extend <id>              Extend item TTL
     ├ --ttl 7d                 Extend to 7 days from now
     ├ --ttl 24h                Extend to 24 hours from now
     └ --permanent              Make permanent (no expiration)`,
@@ -44,9 +44,9 @@ func runExtend(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf(`please specify either --ttl <duration> or --permanent
 
 Examples:
-  oio extend %s --ttl 7d      # Extend to 7 days from now
-  oio extend %s --ttl 24h     # Extend to 24 hours from now
-  oio extend %s --permanent   # Make permanent (no expiration)`, id, id, id)
+  nk extend %s --ttl 7d      # Extend to 7 days from now
+  nk extend %s --ttl 24h     # Extend to 24 hours from now
+  nk extend %s --permanent   # Make permanent (no expiration)`, id, id, id)
 	}
 
 	if extendTTL != "" && extendPermanent {

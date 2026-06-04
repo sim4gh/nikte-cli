@@ -50,7 +50,7 @@ func GetDBPath() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		configDir = filepath.Join(home, "Library", "Application Support", "oio")
+		configDir = filepath.Join(home, "Library", "Application Support", "nikte")
 
 	case "windows":
 		appData := os.Getenv("APPDATA")
@@ -61,7 +61,7 @@ func GetDBPath() (string, error) {
 			}
 			appData = filepath.Join(home, "AppData", "Roaming")
 		}
-		configDir = filepath.Join(appData, "oio")
+		configDir = filepath.Join(appData, "nikte")
 
 	default:
 		configHome := os.Getenv("XDG_CONFIG_HOME")
@@ -72,7 +72,7 @@ func GetDBPath() (string, error) {
 			}
 			configHome = filepath.Join(home, ".config")
 		}
-		configDir = filepath.Join(configHome, "oio")
+		configDir = filepath.Join(configHome, "nikte")
 	}
 
 	if err := os.MkdirAll(configDir, 0700); err != nil {

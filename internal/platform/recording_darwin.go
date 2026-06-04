@@ -26,7 +26,7 @@ func HasFFmpeg() bool {
 // If duration > 0 and selectRegion is false, it records fullscreen for that many seconds.
 // Returns the path to the .mov file (caller must clean up).
 func RecordScreen(duration int, selectRegion bool) (string, error) {
-	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("oio-%s.mov", time.Now().Format("010206")))
+	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("nk-%s.mov", time.Now().Format("010206")))
 
 	var args []string
 	args = append(args, "-v") // video recording mode

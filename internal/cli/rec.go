@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/sim4gh/oio-go/internal/platform"
+	"github.com/sim4gh/nikte-cli/internal/platform"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +35,7 @@ func addRecCommand() {
 		Long: `Record screen to GIF, MP4, or MOV
 
 Examples:
-  oio rec                      Record fullscreen 10s → GIF
+  nk rec                      Record fullscreen 10s → GIF
     ├ -s                       Select region → record → GIF
     ├ -d 30                    Record for 30 seconds
     ├ -f mp4                   Record → MP4

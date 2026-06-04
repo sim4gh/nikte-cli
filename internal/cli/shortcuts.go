@@ -4,15 +4,15 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/sim4gh/oio-go/internal/platform"
+	"github.com/sim4gh/nikte-cli/internal/platform"
 	"github.com/spf13/cobra"
 )
 
 func addShortcutCommands() {
-	// oio c - Quick clipboard add
+	// nk c - Quick clipboard add
 	cCmd := &cobra.Command{
 		Use:   "c",
-		Short: "Quick add from clipboard (alias for \"oio a\")",
+		Short: "Quick add from clipboard (alias for \"nk a\")",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 			return handleClipboard(s)
@@ -26,10 +26,10 @@ func addShortcutCommands() {
 
 	rootCmd.AddCommand(cCmd)
 
-	// oio sc - Quick screenshot
+	// nk sc - Quick screenshot
 	scCmd := &cobra.Command{
 		Use:   "sc",
-		Short: "Quick screenshot (alias for \"oio a sc\")",
+		Short: "Quick screenshot (alias for \"nk a sc\")",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 			return handleScreenshot(s)
@@ -46,10 +46,10 @@ func addShortcutCommands() {
 
 	rootCmd.AddCommand(scCmd)
 
-	// oio p <id> - Quick public share
+	// nk p <id> - Quick public share
 	pCmd := &cobra.Command{
 		Use:   "p <id>",
-		Short: "Quick public share (alias for \"oio sh <id> --public\")",
+		Short: "Quick public share (alias for \"nk sh <id> --public\")",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			sharePublic = true

@@ -1,4 +1,4 @@
-module github.com/sim4gh/oio-go
+module github.com/sim4gh/nikte-cli
 
 go 1.25.0
 

@@ -8,8 +8,8 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
-	"github.com/sim4gh/oio-go/internal/api"
-	"github.com/sim4gh/oio-go/internal/util"
+	"github.com/sim4gh/nikte-cli/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/util"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ func addTrustYouCommand() {
 		Long: `Create a trust token that allows others to upload files to your account
 
 Examples:
-  oio trustyou                 Create token (1 upload, 24h, 150MB max)
+  nk trustyou                 Create token (1 upload, 24h, 150MB max)
     ├ --max 5                  Allow up to 5 uploads
     ├ --ttl 7d                 Token valid for 7 days
     ├ --max-size 10MB          Limit file size to 10MB

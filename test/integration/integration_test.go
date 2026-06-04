@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sim4gh/oio-go/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/api"
 )
 
 func TestHealthEndpoint(t *testing.T) {

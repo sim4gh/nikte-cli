@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/sim4gh/oio-go/internal/api"
-	"github.com/sim4gh/oio-go/internal/upload"
-	"github.com/sim4gh/oio-go/internal/util"
+	"github.com/sim4gh/nikte-cli/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/upload"
+	"github.com/sim4gh/nikte-cli/internal/util"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,7 @@ func addTrustMeCommand() {
 		Long: `Upload a file to someone's account using their trust token
 
 Examples:
-  oio trustme <token> <file>   Upload file using trust token
+  nk trustme <token> <file>   Upload file using trust token
     ├ abc123 photo.jpg         Upload image
     └ abc123 large-video.mp4   Upload large file (multipart)`,
 		Args: cobra.ExactArgs(2),

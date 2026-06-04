@@ -6,8 +6,8 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/pkg/browser"
-	"github.com/sim4gh/oio-go/internal/auth"
-	"github.com/sim4gh/oio-go/internal/config"
+	"github.com/sim4gh/nikte-cli/internal/auth"
+	"github.com/sim4gh/nikte-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -113,7 +113,7 @@ func runWhoami(cmd *cobra.Command, args []string) error {
 	cfg := config.Get()
 	if cfg == nil || cfg.BaseURL == "" || cfg.AccessToken == "" {
 		fmt.Println("You are not currently logged in.")
-		fmt.Println("Run \"oio auth login\" to authenticate.")
+		fmt.Println("Run \"nk auth login\" to authenticate.")
 		return nil
 	}
 

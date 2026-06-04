@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/sim4gh/oio-go/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/api"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +21,7 @@ func addDeleteCommand() {
 		Long: `Delete item by ID
 
 Examples:
-  oio d <id>                   Delete with confirmation
+  nk d <id>                   Delete with confirmation
     └ --force                  Delete without confirmation`,
 		Aliases: []string{"delete"},
 		Args:    cobra.ExactArgs(1),

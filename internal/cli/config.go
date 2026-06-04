@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sim4gh/oio-go/internal/config"
-	"github.com/sim4gh/oio-go/internal/util"
+	"github.com/sim4gh/nikte-cli/internal/config"
+	"github.com/sim4gh/nikte-cli/internal/util"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +31,7 @@ Allowed keys to set: baseurl, default_ttl, quiet
 Protected keys (read-only): id_token, access_token, refresh_token, logged_in_at
 
 Examples:
-  oio config                   Show all config
+  nk config                   Show all config
     ├ get baseurl              Get baseurl value
     ├ set default_ttl 7d       Set default TTL
     ├ set quiet true           Enable quiet mode
@@ -56,13 +56,13 @@ func runConfig(cmd *cobra.Command, args []string) error {
 	switch subcommand {
 	case "get":
 		if len(args) < 2 {
-			return fmt.Errorf("please specify a key to get. Usage: oio config get <key>")
+			return fmt.Errorf("please specify a key to get. Usage: nk config get <key>")
 		}
 		return getConfigValue(args[1])
 
 	case "set":
 		if len(args) < 3 {
-			return fmt.Errorf("please specify a key and value to set. Usage: oio config set <key> <value>")
+			return fmt.Errorf("please specify a key and value to set. Usage: nk config set <key> <value>")
 		}
 		return setConfigValue(args[1], args[2])
 
