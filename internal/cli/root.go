@@ -45,7 +45,6 @@ func init() {
 	addShareCommand()
 	addRecCommand()
 	addTrustYouCommand()
-	addTrustMeCommand()
 	addShortcutCommands()
 	addWaCommands()
 	addLinkCommands()
@@ -100,8 +99,7 @@ Commands:
   rec                         Record screen to GIF, MP4, or MOV
   sh, share <id>              Share item (Pro only)
     └ p <id>                  Quick public share shortcut
-  trustme <token> <file>      Upload file using trust token
-  trustyou                    Create trust token for unauthenticated uploads
+  trustyou                    Create a link for browser file uploads
   wa                          WhatsApp messaging commands
     ├ link                    Link WhatsApp (scan QR code)
     ├ send <number> [msg]     Send a WhatsApp message
