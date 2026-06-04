@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
 	"github.com/sim4gh/nikte-cli/internal/api"
 	"github.com/sim4gh/nikte-cli/internal/util"
@@ -14,29 +13,33 @@ import (
 )
 
 var (
-	trustTTL     string
-	trustMax     int
-	trustMaxSize string
+	trustTTL      string
+	trustMax      int
+	trustMaxSize  string
+	trustPassword string
 )
 
 func addTrustYouCommand() {
 	trustYouCmd := &cobra.Command{
 		Use:   "trustyou",
-		Short: "Create a trust token for unauthenticated uploads",
-		Long: `Create a trust token that allows others to upload files to your account
+		Short: "Create a link people use to upload files to you from the browser",
+		Long: `Create a request-link that anyone can open in their browser to upload files to you.
+No CLI needed on the recipient's side — they just visit the URL.
 
 Examples:
-  nk trustyou                 Create token (1 upload, 24h, 150MB max)
-    ├ --max 5                  Allow up to 5 uploads
-    ├ --ttl 7d                 Token valid for 7 days
-    ├ --max-size 10MB          Limit file size to 10MB
-    └ --max 10 --ttl 1h        10 uploads, expires in 1 hour`,
+  nk trustyou                          Create link (1 upload, 24h, 5GB max)
+    ├ --max 5                           Allow up to 5 uploads
+    ├ --ttl 7d                          Link valid for 7 days
+    ├ --max-size 200MB                  Limit file size to 200MB
+    ├ --password secret                 Require a password to upload
+    └ --max 10 --ttl 7d --max-size 1GB  10 uploads, 7-day link, 1GB per file`,
 		RunE: runTrustYou,
 	}
 
-	trustYouCmd.Flags().StringVar(&trustTTL, "ttl", "24h", "Token expiration (e.g., 1h, 7d)")
+	trustYouCmd.Flags().StringVar(&trustTTL, "ttl", "24h", "Link expiration (e.g., 1h, 7d; max 30d)")
 	trustYouCmd.Flags().IntVar(&trustMax, "max", 1, "Maximum number of uploads allowed")
-	trustYouCmd.Flags().StringVar(&trustMaxSize, "max-size", "150MB", "Maximum file size per upload (e.g., 10MB, 1GB)")
+	trustYouCmd.Flags().StringVar(&trustMaxSize, "max-size", "5GB", "Maximum file size per upload (e.g., 10MB, 1GB, 5GB)")
+	trustYouCmd.Flags().StringVar(&trustPassword, "password", "", "Optional password required to upload")
 
 	rootCmd.AddCommand(trustYouCmd)
 }
@@ -48,23 +51,34 @@ func runTrustYou(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid --max-size value %q: %w", trustMaxSize, err)
 	}
 
-	// Parse TTL to seconds
+	// Parse TTL to seconds, then convert to hours (backend expects expiresInHours).
+	// The backend caps at 720h (30 days); we enforce the same ceiling.
 	ttlSeconds, err := util.ParseTTL(trustTTL)
 	if err != nil {
 		return fmt.Errorf("invalid --ttl value %q: %w", trustTTL, err)
 	}
+	expiresInHours := ttlSeconds / 3600
+	if expiresInHours < 1 {
+		expiresInHours = 1
+	}
+	if expiresInHours > 720 {
+		expiresInHours = 720
+	}
 
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-	s.Suffix = " Creating trust token..."
+	s.Suffix = " Creating upload link..."
 	s.Start()
 
 	body := map[string]interface{}{
-		"ttl":         ttlSeconds,
-		"maxUploads":  trustMax,
-		"maxFileSize": maxFileSize,
+		"maxFileSize":    maxFileSize,
+		"maxSubmissions": trustMax,
+		"expiresInHours": expiresInHours,
+	}
+	if trustPassword != "" {
+		body["password"] = trustPassword
 	}
 
-	resp, err := api.Post("/trust", body)
+	resp, err := api.Post("/request-links", body)
 	s.Stop()
 
 	if err != nil {
@@ -79,36 +93,22 @@ func runTrustYou(cmd *cobra.Command, args []string) error {
 		if msg == "" {
 			msg = fmt.Sprintf("unexpected status %d", resp.StatusCode)
 		}
-		return fmt.Errorf("failed to create trust token: %s", msg)
+		return fmt.Errorf("failed to create upload link: %s", msg)
 	}
 
-	var result struct {
-		TrustToken  string `json:"trustToken"`
-		UploadURL   string `json:"uploadUrl"`
-		MaxUploads  int    `json:"maxUploads"`
-		MaxFileSize int64  `json:"maxFileSize"`
-		ExpiresAt   int64  `json:"expiresAt"`
-		CreatedAt   string `json:"createdAt"`
-	}
+	uploadURL := resp.GetString("url")
 
-	if err := resp.Unmarshal(&result); err != nil {
-		return fmt.Errorf("failed to parse response: %w", err)
-	}
-
-	fmt.Println("Trust token created!")
+	fmt.Println("Upload link created!")
 	fmt.Println()
-	fmt.Printf("Token:        %s\n", result.TrustToken)
-	fmt.Printf("Upload URL:   %s\n", result.UploadURL)
-	fmt.Printf("Max uploads:  %d\n", result.MaxUploads)
-	fmt.Printf("Max file size: %s\n", util.FormatBytes(result.MaxFileSize))
-	fmt.Printf("Expires:      %s\n", util.FormatExpiryTime(result.ExpiresAt))
-
-	// Copy upload URL to clipboard
-	if result.UploadURL != "" {
-		if err := clipboard.WriteAll(result.UploadURL); err == nil {
-			fmt.Println("\n(Upload URL copied to clipboard)")
-		}
+	fmt.Printf("Upload link:  %s\n", uploadURL)
+	fmt.Printf("Max uploads:  %d\n", trustMax)
+	fmt.Printf("Max file size: %s\n", util.FormatBytes(maxFileSize))
+	fmt.Printf("Expires:      in %dh\n", expiresInHours)
+	if trustPassword != "" {
+		fmt.Println("Password:     set")
 	}
+
+	copyToClipboard(uploadURL, "Upload link")
 
 	return nil
 }
