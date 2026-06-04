@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-OIO CLI (Go) is a fast, single-binary command-line tool for ephemeral content management. This is a Go port of the original Node.js CLI (`oio-cli/`) with significantly faster startup time (~25x).
+nikte CLI (Go) is a fast, single-binary command-line tool for ephemeral content management. This is a Go port of the original Node.js CLI (`oio-cli/`) with significantly faster startup time (~25x).
 
 Features:
 - OAuth 2.0 Device Flow authentication
@@ -20,20 +20,20 @@ Features:
 ```bash
 make build          # Build for current platform
 make build-all      # Build for all platforms (macOS, Linux, Windows)
-go build -o oio ./cmd/oio  # Direct Go build
+go build -o nk ./cmd/nk  # Direct Go build
 ```
 
 ### Test Locally
 ```bash
 # Link for local testing
-ln -sf "$(pwd)/oio" ~/bin/oio-go
+ln -sf "$(pwd)/oio" ~/bin/nikte-cli
 
 # Test commands
-./oio --version
-./oio health
-./oio auth login
-./oio a "Hello"
-./oio ls
+./nk --version
+./nk health
+./nk auth login
+./nk a "Hello"
+./nk ls
 ```
 
 ### Install
@@ -50,8 +50,8 @@ make clean          # Remove build artifacts
 
 ### Directory Structure
 ```
-oio-go/
-├── cmd/oio/main.go              # Entry point
+nikte-cli/
+├── cmd/nk/main.go              # Entry point
 ├── internal/
 │   ├── api/client.go            # HTTP client with auto-refresh
 │   ├── auth/
@@ -110,18 +110,18 @@ oio-go/
 ### Hardcoded Values
 ```go
 // internal/api/client.go
-const DefaultBaseURL = "https://auth.yumaverse.com"
+const DefaultBaseURL = "https://auth.nikte.co"
 
 // internal/auth/cognito.go
-const CognitoDomain = "oio-70676d07.auth.us-west-2.amazoncognito.com"
-const ClientID = "5s958v222hp10p0qe86duks7ku"
+const CognitoDomain = "nikte-fcf57b8c.auth.us-west-2.amazoncognito.com"
+const ClientID = "2385ict6amoluilmqns4jf0n73"
 ```
 
 ### Configuration Storage
 Platform-specific paths defined in `internal/config/paths.go`:
-- macOS: `~/Library/Application Support/oio/config.json`
-- Linux: `~/.config/oio/config.json`
-- Windows: `%APPDATA%/oio/config.json`
+- macOS: `~/Library/Application Support/nikte/config.json`
+- Linux: `~/.config/nikte/config.json`
+- Windows: `%APPDATA%/nikte/config.json`
 
 ## Command Structure
 
@@ -132,48 +132,48 @@ oio
 │   ├── logout             # Clear credentials
 │   └── whoami             # Show current user
 ├── a [input]  (alias: add)
-│   ├── oio a              # From clipboard
-│   ├── oio a sc           # Screenshot (macOS)
-│   ├── oio a <path>       # From file
-│   └── oio a "text"       # Text content
+│   ├── nk a              # From clipboard
+│   ├── nk a sc           # Screenshot (macOS)
+│   ├── nk a <path>       # From file
+│   └── nk a "text"       # Text content
 ├── g <id>  (alias: get)   # Get/download item
 ├── ls  (alias: list)      # List all items
 ├── d <id>  (alias: delete)# Delete item
 ├── extend <id>            # Extend TTL
 ├── sh <id>  (alias: share)# Share item (Pro)
 ├── rec                    # Screen recording (GIF/MP4/MOV, macOS)
-│   ├── oio rec            # Fullscreen 10s → GIF
-│   ├── oio rec -s         # Select region → GIF
-│   ├── oio rec -d 30      # 30 seconds
-│   ├── oio rec --format mp4  # MP4 output
-│   └── oio rec --format mov  # MOV (no ffmpeg)
+│   ├── nk rec            # Fullscreen 10s → GIF
+│   ├── nk rec -s         # Select region → GIF
+│   ├── nk rec -d 30      # 30 seconds
+│   ├── nk rec --format mp4  # MP4 output
+│   └── nk rec --format mov  # MOV (no ffmpeg)
 ├── wa                     # WhatsApp messaging (whatsmeow, local SQLite session)
-│   ├── oio wa link        # Link account (scan QR)
-│   ├── oio wa send <num> [message|file|sc] [caption]  # See below
-│   ├── oio wa ls [--all]  # Unread (or all) conversations
-│   ├── oio wa status      # Link status
-│   └── oio wa unlink      # Clear session
-├── link <url>             # URL shortener → share.yumaverse.com/<code>
-│   ├── oio link <url>     # Shorten (--ttl 7d, --permanent; copies to clipboard)
-│   ├── oio link ls        # List your short links
-│   └── oio link d <code>  # Delete a short link
+│   ├── nk wa link        # Link account (scan QR)
+│   ├── nk wa send <num> [message|file|sc] [caption]  # See below
+│   ├── nk wa ls [--all]  # Unread (or all) conversations
+│   ├── nk wa status      # Link status
+│   └── nk wa unlink      # Clear session
+├── link <url>             # URL shortener → share.nikte.co/<code>
+│   ├── nk link <url>     # Shorten (--ttl 7d, --permanent; copies to clipboard)
+│   ├── nk link ls        # List your short links
+│   └── nk link d <code>  # Delete a short link
 ├── config                 # Configuration management
 ├── health                 # Health check
-├── c                      # Quick clipboard (alias for "oio a")
-├── sc                     # Quick screenshot (alias for "oio a sc")
+├── c                      # Quick clipboard (alias for "nk a")
+├── sc                     # Quick screenshot (alias for "nk a sc")
 └── p <id>                 # Quick public share
 ```
 
 ### WhatsApp (`wa`)
 
 WhatsApp is handled locally via [whatsmeow](https://github.com/tulir/whatsmeow),
-not the OIO backend. The session lives in a SQLite DB next to `config.json`
+not the nikte backend. The session lives in a SQLite DB next to `config.json`
 (`internal/whatsapp/client.go`, `GetDBPath()`), opened in **WAL mode with a
 `busy_timeout`** — required because whatsmeow writes from background goroutines
 while foreground calls (e.g. `SendMessage` → "fetch LID mappings") read
 concurrently; without it SQLite returns `SQLITE_BUSY` immediately.
 
-`oio wa send <number> [arg] [caption...]` auto-detects the second argument
+`nk wa send <number> [arg] [caption...]` auto-detects the second argument
 (`runWaSend` / `buildWaSendMessage` in `internal/cli/wa.go`):
 
 | Second arg | Behavior |
@@ -190,13 +190,13 @@ Extra words after a file/`sc` become the caption.
 ### URL shortener (`link`)
 
 `internal/cli/link.go` talks to the backend's `/links` endpoints:
-- `oio link <url>` → `POST /links` (default 48h TTL; `--ttl`/`--permanent`).
+- `nk link <url>` → `POST /links` (default 48h TTL; `--ttl`/`--permanent`).
   `https://` is prepended when the scheme is missing. Prints and clipboard-copies
-  the `share.yumaverse.com/<code>` short URL.
-- `oio link ls` → `GET /links` (tablewriter of the user's links).
-- `oio link d <code>` → `DELETE /links/{code}` (confirm unless `--force`).
+  the `share.nikte.co/<code>` short URL.
+- `nk link ls` → `GET /links` (tablewriter of the user's links).
+- `nk link d <code>` → `DELETE /links/{code}` (confirm unless `--force`).
 
-The public redirect (`share.yumaverse.com/<code>` → 302) is served by the
+The public redirect (`share.nikte.co/<code>` → 302) is served by the
 backend's `access-share-handler`, not the CLI.
 
 ## Adding New Commands
@@ -208,7 +208,7 @@ package cli
 
 import (
     "fmt"
-    "github.com/sim4gh/oio-go/internal/api"
+    "github.com/sim4gh/nikte-cli/internal/api"
     "github.com/spf13/cobra"
 )
 
@@ -332,7 +332,7 @@ go test -v -tags=integration -run TestHealthEndpoint -timeout=30s ./test/integra
 go test -v -tags=integration -run TestHealthEndpoint ./test/integration/
 ```
 
-**Auth setup:** Locally, tests use the refresh token from `~/Library/Application Support/oio/config.json`. In CI, the `OIO_REFRESH_TOKEN` GitHub secret is used.
+**Auth setup:** Locally, tests use the refresh token from `~/Library/Application Support/nikte/config.json`. In CI, the `nikte_REFRESH_TOKEN` GitHub secret is used.
 
 **Test coverage:**
 - `TestHealthEndpoint` — no-auth connectivity check
@@ -346,13 +346,13 @@ go test -v -tags=integration -run TestHealthEndpoint ./test/integration/
 ### Manual Testing
 
 ```bash
-./oio health                    # No auth required
-./oio auth login                # Complete device flow
-./oio a "test content"          # Add text
-./oio ls                        # List items
-./oio g <id>                    # Get item
-./oio d <id> --force            # Delete item
-./oio auth logout               # Clear credentials
+./nk health                    # No auth required
+./nk auth login                # Complete device flow
+./nk a "test content"          # Add text
+./nk ls                        # List items
+./nk g <id>                    # Get item
+./nk d <id> --force            # Delete item
+./nk auth logout               # Clear credentials
 ```
 
 ## Performance

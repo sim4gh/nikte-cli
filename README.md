@@ -1,4 +1,4 @@
-# OIO CLI (Go)
+# nikte CLI (Go)
 
 A fast, single-binary CLI tool for ephemeral content management. This is a Go port of the original Node.js CLI with significantly faster startup time.
 
@@ -19,19 +19,19 @@ A fast, single-binary CLI tool for ephemeral content management. This is a Go po
 ### Homebrew (recommended)
 
 ```bash
-brew tap sim4gh/oio
-brew install oio
+brew tap sim4gh/nikte
+brew install nikte
 ```
 
 ### Download binary
 
-Download the latest release from the [releases page](https://github.com/sim4gh/oio-go/releases) and add to your PATH.
+Download the latest release from the [releases page](https://github.com/sim4gh/nikte-cli/releases) and add to your PATH.
 
 ### Build from source
 
 ```bash
-git clone https://github.com/sim4gh/oio-go.git
-cd oio-go
+git clone https://github.com/sim4gh/nikte-cli.git
+cd nikte-cli
 make build
 make install
 ```
@@ -40,33 +40,33 @@ make install
 
 ```bash
 # Login
-oio auth login
+nk auth login
 
 # Add text content
-oio a "Hello, World!"
+nk a "Hello, World!"
 
 # Add from clipboard
-oio a    # or: oio c
+nk a    # or: nk c
 
 # Take screenshot (macOS)
-oio a sc  # or: oio sc
+nk a sc  # or: nk sc
 
 # Record screen to GIF (macOS, requires ffmpeg)
-oio rec
-oio rec -s              # Select region
-oio rec --format mp4    # MP4 format
+nk rec
+nk rec -s              # Select region
+nk rec --format mp4    # MP4 format
 
 # Add file
-oio a document.pdf
+nk a document.pdf
 
 # List items
-oio ls
+nk ls
 
 # Get item
-oio g <id>
+nk g <id>
 
 # Delete item
-oio d <id>
+nk d <id>
 ```
 
 ## Commands
@@ -74,55 +74,55 @@ oio d <id>
 ### Authentication
 
 ```bash
-oio auth login     # Login using device flow
-oio auth logout    # Clear credentials
-oio auth whoami    # Show current user
+nk auth login     # Login using device flow
+nk auth logout    # Clear credentials
+nk auth whoami    # Show current user
 ```
 
 ### Content Management
 
 ```bash
 # Add content
-oio a [input]              # Add from clipboard/file/text
-oio a sc                   # Screenshot (macOS)
-oio a document.pdf         # File upload
-oio a "Hello"              # Text content
-oio a --permanent          # No expiration
-oio a --ttl 7d             # Custom TTL
+nk a [input]              # Add from clipboard/file/text
+nk a sc                   # Screenshot (macOS)
+nk a document.pdf         # File upload
+nk a "Hello"              # Text content
+nk a --permanent          # No expiration
+nk a --ttl 7d             # Custom TTL
 
 # Get content
-oio g <id>                 # Download/display item
-oio g <id> --url           # Get URL only
-oio g <id> --copy          # Copy URL to clipboard
-oio g <id> -o ~/Downloads  # Save to directory
+nk g <id>                 # Download/display item
+nk g <id> --url           # Get URL only
+nk g <id> --copy          # Copy URL to clipboard
+nk g <id> -o ~/Downloads  # Save to directory
 
 # List content
-oio ls                     # List all items
-oio ls --type text         # Filter by type
-oio ls --search "query"    # Search items
-oio ls --sort size         # Sort by size
-oio ls --raw               # JSON output
+nk ls                     # List all items
+nk ls --type text         # Filter by type
+nk ls --search "query"    # Search items
+nk ls --sort size         # Sort by size
+nk ls --raw               # JSON output
 
 # Delete content
-oio d <id>                 # Delete with confirmation
-oio d <id> --force         # Delete without confirmation
+nk d <id>                 # Delete with confirmation
+nk d <id> --force         # Delete without confirmation
 
 # Extend TTL
-oio extend <id> --ttl 7d   # Extend to 7 days
-oio extend <id> --permanent # Make permanent
+nk extend <id> --ttl 7d   # Extend to 7 days
+nk extend <id> --permanent # Make permanent
 ```
 
 ### Screen Recording (macOS)
 
 ```bash
-oio rec                        # Record fullscreen 10s → GIF
-oio rec -s                     # Select region → record → GIF
-oio rec -d 30                  # Record for 30 seconds (max 60)
-oio rec --format mp4           # Record → MP4
-oio rec --format mov           # Record → MOV (no ffmpeg needed)
-oio rec --fps 15               # Custom frame rate (GIF only)
-oio rec --width 1280           # Scale output width (0 = original)
-oio rec -s --format mp4 -d 20  # Select region, 20s, MP4
+nk rec                        # Record fullscreen 10s → GIF
+nk rec -s                     # Select region → record → GIF
+nk rec -d 30                  # Record for 30 seconds (max 60)
+nk rec --format mp4           # Record → MP4
+nk rec --format mov           # Record → MOV (no ffmpeg needed)
+nk rec --fps 15               # Custom frame rate (GIF only)
+nk rec --width 1280           # Scale output width (0 = original)
+nk rec -s --format mp4 -d 20  # Select region, 20s, MP4
 ```
 
 Requires `ffmpeg` for GIF and MP4 formats (`brew install ffmpeg`). MOV format uses native `screencapture` only.
@@ -130,44 +130,44 @@ Requires `ffmpeg` for GIF and MP4 formats (`brew install ffmpeg`). MOV format us
 ### Sharing (Pro)
 
 ```bash
-oio sh <id>                # Create public share
-oio sh <id> --password pw  # Password-protected share
-oio sh <id> --expires 7d   # Custom expiration
-oio p <id>                 # Quick public share
+nk sh <id>                # Create public share
+nk sh <id> --password pw  # Password-protected share
+nk sh <id> --expires 7d   # Custom expiration
+nk p <id>                 # Quick public share
 ```
 
 ### Configuration
 
 ```bash
-oio config                 # Show all config
-oio config get <key>       # Get specific value
-oio config set <key> <val> # Set value
-oio config path            # Show config file path
-oio config reset           # Clear all config
+nk config                 # Show all config
+nk config get <key>       # Get specific value
+nk config set <key> <val> # Set value
+nk config path            # Show config file path
+nk config reset           # Clear all config
 ```
 
 ### Other
 
 ```bash
-oio health                 # Check API health
-oio --version              # Show version
-oio --help                 # Show help
+nk health                 # Check API health
+nk --version              # Show version
+nk --help                 # Show help
 ```
 
 ## Shortcuts
 
 | Shortcut | Full Command |
 |----------|--------------|
-| `oio c` | `oio a` (clipboard) |
-| `oio sc` | `oio a sc` (screenshot) |
-| `oio p <id>` | `oio sh <id> --public` |
+| `nk c` | `nk a` (clipboard) |
+| `nk sc` | `nk a sc` (screenshot) |
+| `nk p <id>` | `nk sh <id> --public` |
 
 ## Configuration
 
 Configuration is stored in:
-- macOS: `~/Library/Application Support/oio/config.json`
-- Linux: `~/.config/oio/config.json`
-- Windows: `%APPDATA%/oio/config.json`
+- macOS: `~/Library/Application Support/nikte/config.json`
+- Linux: `~/.config/nikte/config.json`
+- Windows: `%APPDATA%/nikte/config.json`
 
 ## TTL Format
 
@@ -196,20 +196,20 @@ make lint               # Run linter
 Integration tests exercise the real API and live in `test/integration/`. They are guarded by the `//go:build integration` build tag so `make test` won't run them.
 
 ```bash
-# Run all integration tests (requires prior `oio auth login`)
+# Run all integration tests (requires prior `nk auth login`)
 make test-integration
 
 # Run just the health check (no auth needed)
 go test -v -tags=integration -run TestHealthEndpoint ./test/integration/
 ```
 
-In CI, the `OIO_REFRESH_TOKEN` GitHub secret provides authentication.
+In CI, the `nikte_REFRESH_TOKEN` GitHub secret provides authentication.
 
 ## Architecture
 
 ```
-oio-go/
-├── cmd/oio/main.go              # Entry point
+nikte-cli/
+├── cmd/nk/main.go              # Entry point
 ├── internal/
 │   ├── api/client.go            # HTTP client with auto-refresh
 │   ├── auth/                    # OAuth, JWT, Cognito
