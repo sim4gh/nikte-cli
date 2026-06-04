@@ -31,3 +31,6 @@ Thumbs.db
 # Debug
 debug
 *.log
+
+# built binary
+nk
