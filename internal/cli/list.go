@@ -17,11 +17,12 @@ import (
 )
 
 var (
-	listType   string
-	listSearch string
-	listLimit  string
-	listSort   string
-	listRaw    bool
+	listType        string
+	listSearch      string
+	listLimit       string
+	listSort        string
+	listRaw         bool
+	listInteractive bool
 )
 
 // Item represents a unified item
@@ -44,6 +45,7 @@ func addListCommand() {
 
 Examples:
   nk ls                       List all items
+    ├ -i, --interactive        Navigable list (arrows, copy, delete)
     ├ --type text              Show only text items
     ├ --search "important"     Search for "important"
     ├ --limit 5 --sort size    Top 5 by size
@@ -57,6 +59,7 @@ Examples:
 	listCmd.Flags().StringVarP(&listLimit, "limit", "l", "", "Limit number of results")
 	listCmd.Flags().StringVar(&listSort, "sort", "date", "Sort by: size, date, expiry")
 	listCmd.Flags().BoolVar(&listRaw, "raw", false, "Output as JSON (for piping)")
+	listCmd.Flags().BoolVarP(&listInteractive, "interactive", "i", false, "Interactive navigable list")
 
 	rootCmd.AddCommand(listCmd)
 }
@@ -66,24 +69,9 @@ func runList(cmd *cobra.Command, args []string) error {
 	s.Suffix = " Fetching items..."
 	s.Start()
 
-	// Fetch from all sources in parallel
-	shortsChan := make(chan []Item)
-	screenshotsChan := make(chan []Item)
-	filesChan := make(chan []Item)
-
-	go func() { shortsChan <- fetchShorts() }()
-	go func() { screenshotsChan <- fetchScreenshots() }()
-	go func() { filesChan <- fetchFiles() }()
-
-	shorts := <-shortsChan
-	screenshots := <-screenshotsChan
-	files := <-filesChan
+	allItems := fetchAllItems()
 
 	s.Stop()
-	fmt.Println("Items fetched successfully")
-
-	// Combine all items
-	allItems := append(append(shorts, screenshots...), files...)
 
 	// Apply filters
 	if listType != "" {
@@ -96,6 +84,11 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Sort items
 	allItems = sortItems(allItems, listSort)
+
+	// Interactive mode: launch the navigable TUI with the filtered/sorted set.
+	if listInteractive {
+		return runListTUI(allItems)
+	}
 
 	// Apply limit
 	totalBeforeLimit := len(allItems)
@@ -173,6 +166,24 @@ func runList(cmd *cobra.Command, args []string) error {
 	fmt.Println("\nTypes: Text, File, Screenshot, Pro")
 
 	return nil
+}
+
+// fetchAllItems fetches shorts, screenshots, and files concurrently and returns
+// them combined (unfiltered, unsorted).
+func fetchAllItems() []Item {
+	shortsChan := make(chan []Item)
+	screenshotsChan := make(chan []Item)
+	filesChan := make(chan []Item)
+
+	go func() { shortsChan <- fetchShorts() }()
+	go func() { screenshotsChan <- fetchScreenshots() }()
+	go func() { filesChan <- fetchFiles() }()
+
+	shorts := <-shortsChan
+	screenshots := <-screenshotsChan
+	files := <-filesChan
+
+	return append(append(shorts, screenshots...), files...)
 }
 
 func fetchShorts() []Item {

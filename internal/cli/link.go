@@ -18,6 +18,7 @@ var (
 	linkTTL         string
 	linkPermanent   bool
 	linkDeleteForce bool
+	linkQR          bool
 )
 
 func addLinkCommands() {
@@ -41,6 +42,7 @@ Examples:
 	}
 	linkCmd.Flags().StringVar(&linkTTL, "ttl", "", "Expiration: 30s, 60m, 24h, 7d (default 48h)")
 	linkCmd.Flags().BoolVarP(&linkPermanent, "permanent", "p", false, "Never expire")
+	linkCmd.Flags().BoolVar(&linkQR, "qr", false, "Print a scannable QR code of the short URL")
 
 	lsCmd := &cobra.Command{
 		Use:     "ls",
@@ -107,6 +109,9 @@ func runLinkCreate(cmd *cobra.Command, args []string) error {
 		fmt.Println("Expires: never (permanent)")
 	}
 	copyToClipboard(shortURL, "Short URL")
+	if linkQR {
+		printQR(shortURL)
+	}
 	return nil
 }
 

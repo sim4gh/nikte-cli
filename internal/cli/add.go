@@ -10,6 +10,7 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
 	"github.com/sim4gh/nikte-cli/internal/api"
+	"github.com/sim4gh/nikte-cli/internal/crypto"
 	"github.com/sim4gh/nikte-cli/internal/platform"
 	"github.com/sim4gh/nikte-cli/internal/upload"
 	"github.com/sim4gh/nikte-cli/internal/util"
@@ -17,15 +18,19 @@ import (
 )
 
 var (
-	addPermanent   bool
-	addTTL         string
-	addPublic      bool
-	addPassword    string
-	addTitle       string
-	addDesc        string
-	addWindow      bool
-	addFullscreen  bool
-	addWatch       string
+	addPermanent  bool
+	addTTL        string
+	addPublic     bool
+	addPassword   string
+	addTitle      string
+	addDesc       string
+	addWindow     bool
+	addFullscreen bool
+	addWatch      string
+	addQR         bool
+	addMaxViews   int
+	addEncrypt    bool
+	addEncPass    string
 )
 
 const (
@@ -62,6 +67,10 @@ Examples:
 	addCmd.Flags().BoolVarP(&addWindow, "window", "w", false, "Capture specific window (for screenshot)")
 	addCmd.Flags().BoolVarP(&addFullscreen, "fullscreen", "f", false, "Capture full screen (for screenshot)")
 	addCmd.Flags().StringVar(&addWatch, "watch", "", "Continuous screenshot mode (optional: interval in seconds)")
+	addCmd.Flags().BoolVar(&addQR, "qr", false, "Print a scannable QR code of the share URL (with --public/--password)")
+	addCmd.Flags().IntVar(&addMaxViews, "max-views", 0, "Burn-after-read: delete the share after N views (with --public/--password)")
+	addCmd.Flags().BoolVarP(&addEncrypt, "encrypt", "e", false, "Encrypt client-side before upload (zero-knowledge; server never sees plaintext)")
+	addCmd.Flags().StringVar(&addEncPass, "enc-pass", "", "Encryption passphrase (else prompt or NIKTE_PASSPHRASE)")
 
 	rootCmd.AddCommand(addCmd)
 }
@@ -142,10 +151,11 @@ func handleFileUpload(filePath string, s *spinner.Spinner) error {
 
 	filename := filepath.Base(filePath)
 	contentType := upload.GetMimeType(filePath)
+	fileSize := fileInfo.Size()
 	ttlSeconds := calculateTTL(true)
 
 	fmt.Printf("File: %s\n", filename)
-	fmt.Printf("Size: %s\n", util.FormatBytes(fileInfo.Size()))
+	fmt.Printf("Size: %s\n", util.FormatBytes(fileSize))
 	fmt.Printf("Type: %s\n", contentType)
 
 	s.Suffix = " Reading file..."
@@ -160,6 +170,24 @@ func handleFileUpload(filePath string, s *spinner.Spinner) error {
 	s.Stop()
 	fmt.Println("File read successfully")
 
+	// Client-side encryption: encrypt the bytes before upload. The ciphertext is
+	// self-describing and the filename is marked so `nk g` can decrypt it back.
+	if addEncrypt {
+		pass, err := resolvePassphrase(addEncPass, true)
+		if err != nil {
+			return err
+		}
+		enc, err := crypto.EncryptBytes(pass, fileData)
+		if err != nil {
+			return fmt.Errorf("encryption failed: %w", err)
+		}
+		fileData = enc
+		filename += crypto.FileSuffix
+		contentType = "application/octet-stream"
+		fileSize = int64(len(fileData))
+		fmt.Printf("Encrypted: %s (%s)\n", filename, util.FormatBytes(fileSize))
+	}
+
 	// Initialize multipart upload
 	s.Suffix = " Initializing upload..."
 	s.Start()
@@ -167,7 +195,7 @@ func handleFileUpload(filePath string, s *spinner.Spinner) error {
 	initBody := map[string]interface{}{
 		"filename":    filename,
 		"contentType": contentType,
-		"fileSize":    fileInfo.Size(),
+		"fileSize":    fileSize,
 	}
 	if addPermanent {
 		initBody["ttl"] = "permanent"
@@ -323,6 +351,22 @@ func handleClipboard(s *spinner.Spinner) error {
 }
 
 func uploadTextContent(content string, s *spinner.Spinner) error {
+	// Client-side encryption: replace content with a self-describing ciphertext
+	// blob before it ever leaves the machine.
+	if addEncrypt {
+		s.Stop()
+		pass, err := resolvePassphrase(addEncPass, true)
+		if err != nil {
+			return err
+		}
+		enc, err := crypto.EncryptText(pass, content)
+		if err != nil {
+			return fmt.Errorf("encryption failed: %w", err)
+		}
+		content = enc
+		s.Start()
+	}
+
 	ttlSeconds := calculateTTL(false)
 
 	body := map[string]interface{}{
@@ -485,6 +529,9 @@ func createShare(itemID, itemType string) error {
 	if addDesc != "" {
 		body["description"] = addDesc
 	}
+	if addMaxViews > 0 {
+		body["maxViews"] = addMaxViews
+	}
 
 	resp, err := api.Post(endpoint, body)
 	if err != nil {
@@ -509,6 +556,9 @@ func createShare(itemID, itemType string) error {
 			if shareURL != "" {
 				fmt.Printf("\nShare URL: %s\n", shareURL)
 				copyToClipboard(shareURL, "Share URL")
+				if addQR {
+					printQR(shareURL)
+				}
 			}
 		}
 		return nil

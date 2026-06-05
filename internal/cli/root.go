@@ -8,7 +8,7 @@ import (
 )
 
 // Version is set at build time
-var Version = "0.4.0"
+var Version = "0.5.0"
 
 // rootCmd represents the base command
 var rootCmd = &cobra.Command{
@@ -79,6 +79,7 @@ Commands:
     │   --ttl <duration>      Custom TTL (e.g., 1h, 7d, 30d)
     │   --public, -p          Create public share link on add
     │   --password <pass>     Password-protected share on add
+    │   --encrypt, -e         Encrypt client-side (zero-knowledge)
     │   --title <text>        Social preview title (with --public)
     │   --desc <text>         Social preview description
     │
@@ -96,13 +97,18 @@ Commands:
   g, get <id>                 Get/download item by ID
   health                      Check system health status
   ls, list                    List all items
+    └ -i, --interactive       Navigable list (arrows, copy, delete)
   rec                         Record screen to GIF, MP4, or MOV
   sh, share <id>              Share item (Pro only)
+    ├ ls                      List your shares with view counts
+    ├ --qr                    Print a scannable QR of the share URL
+    ├ --max-views <n>         Burn-after-read: delete link after N views
     └ p <id>                  Quick public share shortcut
   trustyou                    Create a link for browser file uploads
   wa                          WhatsApp messaging commands
     ├ link                    Link WhatsApp (scan QR code)
     ├ send <number> [msg]     Send a WhatsApp message
+    │   └ --item <id>         Forward a nikte item by ID
     ├ ls                      Show incoming messages (live)
     ├ status                  Check link status
     └ unlink                  Unlink WhatsApp

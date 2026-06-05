@@ -13,6 +13,7 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
 	"github.com/mdp/qrterminal/v3"
+	"github.com/sim4gh/nikte-cli/internal/api"
 	"github.com/sim4gh/nikte-cli/internal/platform"
 	"github.com/sim4gh/nikte-cli/internal/upload"
 	"github.com/sim4gh/nikte-cli/internal/util"
@@ -28,6 +29,7 @@ import (
 var (
 	waLsAll          bool
 	waSendFullscreen bool
+	waSendItem       string
 )
 
 func addWaCommands() {
@@ -63,6 +65,10 @@ The second argument is auto-detected:
   - anything else             send it as a text message
   - omitted                   send clipboard content (image if present, else text)
 
+Use --item <id> to forward an existing nikte item (text, file, or screenshot)
+by its ID: text is sent as a message, files/screenshots are downloaded and sent
+as media.
+
 When sending a file or screenshot, any extra words become the caption.
 Phone number should include country code (e.g., 14255687870 for US).
 
@@ -73,11 +79,14 @@ Examples:
   nk wa send 14255687870 clip.mp4                # video
   nk wa send 14255687870 report.pdf              # document
   nk wa send 14255687870 sc "look at this"       # screenshot with caption
+  nk wa send 14255687870 --item AB12             # forward a nikte item
+  nk wa send 14255687870 --item AB12 "fyi"       # forward with a caption
   nk wa send +1-425-568-7870 "Hi"                # non-digits are stripped`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: runWaSend,
 	}
 	sendCmd.Flags().BoolVarP(&waSendFullscreen, "fullscreen", "f", false, "Capture full screen instead of region select (for sc)")
+	sendCmd.Flags().StringVar(&waSendItem, "item", "", "Forward a nikte item (text/file/screenshot) by its ID")
 
 	lsCmd := &cobra.Command{
 		Use:     "ls",
@@ -224,8 +233,15 @@ func runWaSend(cmd *cobra.Command, args []string) error {
 
 	number := args[0]
 
-	// Auto-detect what to send from the remaining arguments.
-	msg, desc, err := buildWaSendMessage(client, args[1:])
+	// --item forwards an existing nikte item; otherwise auto-detect from args.
+	var msg *waE2E.Message
+	var desc string
+	if waSendItem != "" {
+		caption := strings.Join(args[1:], " ")
+		msg, desc, err = buildWaItemMessage(client, waSendItem, caption)
+	} else {
+		msg, desc, err = buildWaSendMessage(client, args[1:])
+	}
 	if err != nil {
 		return err
 	}
@@ -306,6 +322,81 @@ func buildWaSendMessage(client *whatsmeow.Client, rest []string) (*waE2E.Message
 
 	// Otherwise: plain text message (join all remaining args).
 	return &waE2E.Message{Conversation: proto.String(strings.Join(rest, " "))}, "message", nil
+}
+
+// buildWaItemMessage forwards an existing nikte item (looked up by ID) over
+// WhatsApp. Text shorts are sent as a message; file shorts, screenshots, and
+// Pro files are downloaded and sent as media. The caption applies to media only.
+func buildWaItemMessage(client *whatsmeow.Client, id, caption string) (*waE2E.Message, string, error) {
+	// Try as a short first (text or file).
+	if resp, err := api.Get("/shorts/" + id); err == nil && resp.StatusCode == 200 {
+		var item struct {
+			Type        string `json:"type"`
+			Content     string `json:"content"`
+			Filename    string `json:"filename"`
+			ContentType string `json:"contentType"`
+			DownloadURL string `json:"downloadUrl"`
+		}
+		if err := resp.Unmarshal(&item); err != nil {
+			return nil, "", err
+		}
+		if item.Type == "file" {
+			data, err := downloadBytes(item.DownloadURL)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to download item %q: %w", id, err)
+			}
+			fmt.Printf("Forwarding %s\n", item.Filename)
+			return buildWaMedia(client, data, item.ContentType, caption, item.Filename)
+		}
+		// Text short: send the content as a message.
+		text := item.Content
+		if caption != "" {
+			text = caption + "\n" + text
+		}
+		fmt.Printf("Forwarding text item %q\n", id)
+		return &waE2E.Message{Conversation: proto.String(text)}, "message", nil
+	}
+
+	// Try as a screenshot.
+	if resp, err := api.Get("/screenshots/" + id); err == nil && resp.StatusCode == 200 {
+		var item struct {
+			ContentType string `json:"contentType"`
+			DownloadURL string `json:"downloadUrl"`
+		}
+		if err := resp.Unmarshal(&item); err != nil {
+			return nil, "", err
+		}
+		data, err := downloadBytes(item.DownloadURL)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to download screenshot %q: %w", id, err)
+		}
+		contentType := item.ContentType
+		if contentType == "" {
+			contentType = "image/png"
+		}
+		fmt.Printf("Forwarding screenshot %q\n", id)
+		return buildWaMedia(client, data, contentType, caption, "screenshot-"+id+".png")
+	}
+
+	// Try as a Pro file.
+	if resp, err := api.Get("/files/" + id); err == nil && resp.StatusCode == 200 {
+		var item struct {
+			Filename    string `json:"filename"`
+			ContentType string `json:"contentType"`
+			DownloadURL string `json:"downloadUrl"`
+		}
+		if err := resp.Unmarshal(&item); err != nil {
+			return nil, "", err
+		}
+		data, err := downloadBytes(item.DownloadURL)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to download file %q: %w", id, err)
+		}
+		fmt.Printf("Forwarding %s\n", item.Filename)
+		return buildWaMedia(client, data, item.ContentType, caption, item.Filename)
+	}
+
+	return nil, "", fmt.Errorf("no nikte item found with ID %q (it may have expired)", id)
 }
 
 // buildWaMedia uploads media bytes to WhatsApp and builds the matching message
@@ -430,7 +521,7 @@ func runWaLs(cmd *cobra.Command, args []string) error {
 
 	var mu sync.Mutex
 	chats := make(map[types.JID]*chatMessages)        // offline messages by chat
-	historyMeta := make(map[string]*histSyncConvMeta)  // history sync metadata by JID string
+	historyMeta := make(map[string]*histSyncConvMeta) // history sync metadata by JID string
 	done := make(chan struct{}, 1)
 
 	client.AddEventHandler(func(evt interface{}) {
