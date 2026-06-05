@@ -1,7 +1,10 @@
 .PHONY: build clean test test-integration test-all install
 
+# Local dev/test binary is `nk-cli` so it never shadows the production `nk`
+# installed from Homebrew. The release binary (named `nk`) is built by GoReleaser
+# (.goreleaser.yml), not this Makefile.
 VERSION ?= 1.0.0
-BINARY_NAME = nk
+BINARY_NAME = nk-cli
 BUILD_DIR = build
 LDFLAGS = -ldflags "-s -w -X github.com/sim4gh/nikte-cli/internal/cli.Version=$(VERSION)"
 

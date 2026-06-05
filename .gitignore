@@ -32,5 +32,6 @@ Thumbs.db
 debug
 *.log
 
-# built binary
+# built binaries (local dev = nk-cli; legacy = nk)
 nk
+nk-cli
