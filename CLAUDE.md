@@ -18,21 +18,25 @@ Features:
 
 ### Binary convention
 - **`nk`** = production, installed from Homebrew (`brew install sim4gh/nikte/nikte`).
-- **`nk-cli`** = local dev/test build. `make build` produces `./nk-cli` so it never
-  shadows the Homebrew `nk`. (The released binary is named `nk`, built by GoReleaser.)
+- **`nk-cli`** = local dev/test build, available globally as a command. `make dev-link`
+  builds it and symlinks `nk-cli` into PATH (next to the Homebrew `nk`); the symlink
+  points at the repo binary, so every `make build` updates the global `nk-cli`. It is
+  named `nk-cli` so it never shadows `nk`. (The released binary is named `nk`, built by
+  GoReleaser — unaffected by the Makefile.)
 
 ### Build
 ```bash
+make dev-link       # Build + symlink `nk-cli` into PATH (one-time setup; auto-updates on rebuild)
 make build          # Build ./nk-cli for the current platform
 make build-all      # Build for all platforms (macOS, Linux, Windows)
 ```
 
 ### Test Locally
 ```bash
-./nk-cli --version
-./nk-cli health
-./nk-cli a "Hello"
-./nk-cli ls
+nk-cli --version    # global command after `make dev-link`
+nk-cli health
+nk-cli a "Hello"
+nk-cli ls
 ```
 
 ### Test suites

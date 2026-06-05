@@ -1,4 +1,4 @@
-.PHONY: build clean test test-integration test-all install smoke
+.PHONY: build clean test test-integration test-all install smoke dev-link
 
 # Local dev/test binary is `nk-cli` so it never shadows the production `nk`
 # installed from Homebrew. The release binary (named `nk`) is built by GoReleaser
@@ -29,7 +29,14 @@ build-all: clean
 	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./cmd/nk
 	@echo "Done! Binaries in $(BUILD_DIR)/"
 
-# Install locally
+# Symlink nk-cli into PATH (next to the Homebrew `nk`) so it works globally as a
+# command and auto-updates on every `make build` (it's a symlink to the repo binary).
+dev-link: build
+	@BINDIR="$$(dirname "$$(command -v nk 2>/dev/null || echo /opt/homebrew/bin/nk)")"; \
+	ln -sf "$(PWD)/$(BINARY_NAME)" "$$BINDIR/$(BINARY_NAME)"; \
+	echo "Linked $(BINARY_NAME) -> $$(command -v $(BINARY_NAME))"
+
+# Install locally (copy, requires sudo). For dev prefer `make dev-link` (symlink).
 install: build
 	@echo "Installing to /usr/local/bin/$(BINARY_NAME)..."
 	@sudo cp $(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
