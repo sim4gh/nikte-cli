@@ -69,8 +69,10 @@ func InitiateDeviceAuth() (*DeviceAuthResponse, error) {
 	return &authResp, nil
 }
 
-// PollForToken polls the token endpoint until authentication is complete
-func PollForToken(deviceCode string, interval int) (*DeviceTokenResponse, error) {
+// PollForToken polls the token endpoint until authentication is complete or the
+// device code expires. expiresIn is the device-code lifetime in seconds (from the
+// device_authorization response); it falls back to 10 minutes if not provided.
+func PollForToken(deviceCode string, interval, expiresIn int) (*DeviceTokenResponse, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	data := url.Values{}
@@ -82,7 +84,16 @@ func PollForToken(deviceCode string, interval int) (*DeviceTokenResponse, error)
 		pollInterval = 2 * time.Second
 	}
 
+	if expiresIn <= 0 {
+		expiresIn = 600 // 10 minutes
+	}
+	deadline := time.Now().Add(time.Duration(expiresIn) * time.Second)
+
 	for {
+		if time.Now().After(deadline) {
+			return nil, errors.New("login timed out: the code expired before you completed sign-in. Run \"nk auth login\" again")
+		}
+
 		time.Sleep(pollInterval)
 
 		req, err := http.NewRequest("POST", BaseURL+"/token", strings.NewReader(data.Encode()))
