@@ -32,6 +32,13 @@ func TestNotLinkedError(t *testing.T) {
 	}
 }
 
+func TestProfileLabel(t *testing.T) {
+	// No aliases configured in the test env → label is the number.
+	if got := profileLabel(2); got != "2" {
+		t.Errorf("profileLabel(2) = %q, want \"2\" when no alias set", got)
+	}
+}
+
 func TestProfileFromCmd(t *testing.T) {
 	c := &cobra.Command{}
 	c.Flags().StringP("profile", "p", "1", "")
