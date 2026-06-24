@@ -32,6 +32,15 @@ var (
 	waSendItem       string
 )
 
+// notLinkedError builds the "not linked" error, naming the profile when it is
+// not the default so the user runs "nk wa link" against the right account.
+func notLinkedError(profile int) error {
+	if profile == 1 {
+		return fmt.Errorf(`WhatsApp not linked. Run "nk wa link" first`)
+	}
+	return fmt.Errorf(`WhatsApp profile %d not linked. Run "nk wa link -p %d" first`, profile, profile)
+}
+
 func addWaCommands() {
 	waCmd := &cobra.Command{
 		Use:   "wa",
@@ -45,7 +54,10 @@ Examples:
   nk wa ls                            Show unread messages
   nk wa ls --all                      Show all recent conversations
   nk wa status                        Check link status
-  nk wa unlink                        Unlink WhatsApp`,
+  nk wa unlink                        Unlink WhatsApp
+  nk wa link -p 2                     Link a second account (profile 2)
+  nk wa send -p 2 7778887788 "Hi"     Send from profile 2
+  nk wa status                        Show status of all profiles`,
 	}
 
 	linkCmd := &cobra.Command{
@@ -81,7 +93,8 @@ Examples:
   nk wa send 14255687870 sc "look at this"       # screenshot with caption
   nk wa send 14255687870 --item AB12             # forward a nikte item
   nk wa send 14255687870 --item AB12 "fyi"       # forward with a caption
-  nk wa send +1-425-568-7870 "Hi"                # non-digits are stripped`,
+  nk wa send +1-425-568-7870 "Hi"                # non-digits are stripped
+  nk wa send -p 2 14255687870 "Hi"              # send from profile 2`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: runWaSend,
 	}
@@ -116,12 +129,21 @@ Examples:
 		RunE:  runWaStatus,
 	}
 
+	waCmd.PersistentFlags().IntP("profile", "p", 1, "WhatsApp profile to use (1-4)")
+	// Validate the profile once for every wa subcommand, before any DB/session
+	// work. root.go has no PersistentPreRunE, so this is not shadowed.
+	waCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		profile, _ := cmd.Flags().GetInt("profile")
+		return whatsapp.ValidateProfile(profile)
+	}
+
 	waCmd.AddCommand(linkCmd, sendCmd, lsCmd, unlinkCmd, statusCmd)
 	rootCmd.AddCommand(waCmd)
 }
 
 func runWaLink(cmd *cobra.Command, args []string) error {
-	client, err := whatsapp.NewClient(false)
+	profile, _ := cmd.Flags().GetInt("profile")
+	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		return fmt.Errorf("failed to initialize WhatsApp: %w", err)
 	}
@@ -209,13 +231,14 @@ func runWaLink(cmd *cobra.Command, args []string) error {
 }
 
 func runWaSend(cmd *cobra.Command, args []string) error {
-	client, err := whatsapp.NewClient(false)
+	profile, _ := cmd.Flags().GetInt("profile")
+	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		return err
 	}
 
 	if client.Store.ID == nil {
-		return fmt.Errorf("WhatsApp not linked. Run \"nk wa link\" first")
+		return notLinkedError(profile)
 	}
 
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
@@ -506,13 +529,14 @@ type chatMsg struct {
 }
 
 func runWaLs(cmd *cobra.Command, args []string) error {
-	client, err := whatsapp.NewClient(false)
+	profile, _ := cmd.Flags().GetInt("profile")
+	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		return err
 	}
 
 	if client.Store.ID == nil {
-		return fmt.Errorf("WhatsApp not linked. Run \"nk wa link\" first")
+		return notLinkedError(profile)
 	}
 
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
@@ -705,15 +729,16 @@ func printChat(chat *chatMessages) {
 }
 
 func runWaUnlink(cmd *cobra.Command, args []string) error {
-	if !whatsapp.IsLinked() {
+	profile, _ := cmd.Flags().GetInt("profile")
+	if !whatsapp.IsLinked(profile) {
 		fmt.Println("WhatsApp is not linked.")
 		return nil
 	}
 
-	client, err := whatsapp.NewClient(false)
+	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		// If we can't create client, just delete the DB
-		if delErr := whatsapp.DeleteDB(); delErr != nil {
+		if delErr := whatsapp.DeleteDB(profile); delErr != nil {
 			return fmt.Errorf("failed to delete session: %w", delErr)
 		}
 		fmt.Println("WhatsApp session cleared.")
@@ -728,7 +753,7 @@ func runWaUnlink(cmd *cobra.Command, args []string) error {
 		client.Disconnect()
 	}
 
-	if err := whatsapp.DeleteDB(); err != nil {
+	if err := whatsapp.DeleteDB(profile); err != nil {
 		return fmt.Errorf("failed to delete session: %w", err)
 	}
 
@@ -736,25 +761,46 @@ func runWaUnlink(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// formatProfileLine renders one row of the multi-profile status overview.
+func formatProfileLine(profile int, linked bool, id string) string {
+	if !linked {
+		return fmt.Sprintf("  %d  Not linked", profile)
+	}
+	return fmt.Sprintf("  %d  Linked      (%s)", profile, id)
+}
+
 func runWaStatus(cmd *cobra.Command, args []string) error {
-	if !whatsapp.IsLinked() {
-		fmt.Println("WhatsApp: Not linked")
-		fmt.Println("Run \"nk wa link\" to connect your WhatsApp account.")
+	profile, _ := cmd.Flags().GetInt("profile")
+
+	// No explicit -p: fast, local-only overview of all profiles (no network).
+	if !cmd.Flags().Changed("profile") {
+		fmt.Println("WhatsApp profiles:")
+		for p := 1; p <= 4; p++ {
+			linked, id, _ := whatsapp.ProfileStatus(p)
+			fmt.Println(formatProfileLine(p, linked, id))
+		}
 		return nil
 	}
 
-	client, err := whatsapp.NewClient(false)
+	// Explicit -p N: detailed status for that profile (verifies live connection).
+	if !whatsapp.IsLinked(profile) {
+		fmt.Printf("WhatsApp profile %d: Not linked\n", profile)
+		fmt.Printf("Run \"nk wa link -p %d\" to connect this account.\n", profile)
+		return nil
+	}
+
+	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		return err
 	}
 
 	if client.Store.ID == nil {
-		fmt.Println("WhatsApp: Not linked (empty session)")
-		fmt.Println("Run \"nk wa link\" to connect your WhatsApp account.")
+		fmt.Printf("WhatsApp profile %d: Not linked\n", profile)
+		fmt.Printf("Run \"nk wa link -p %d\" to connect this account.\n", profile)
 		return nil
 	}
 
-	fmt.Println("WhatsApp: Linked")
+	fmt.Printf("WhatsApp profile %d: Linked\n", profile)
 	fmt.Printf("  Device: %s\n", client.Store.ID.String())
 
 	// Try a quick connect to verify session is still valid
