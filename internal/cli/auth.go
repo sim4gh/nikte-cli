@@ -138,7 +138,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	if expiry, err := auth.GetTokenExpiry(cfg.IDToken); err == nil {
 		if auth.IsTokenExpired(cfg.IDToken) {
-			fmt.Println("Access token:  EXPIRED — a refresh is required")
+			fmt.Println("Access token:  expired — auto-refreshes on next command (see Token usable below)")
 		} else {
 			fmt.Printf("Access token:  valid (expires in %s)\n", time.Until(expiry).Round(time.Minute))
 		}
