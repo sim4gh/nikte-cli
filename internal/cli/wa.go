@@ -121,7 +121,7 @@ Examples:
 }
 
 func runWaLink(cmd *cobra.Command, args []string) error {
-	client, err := whatsapp.NewClient(false)
+	client, err := whatsapp.NewClient(1, false)
 	if err != nil {
 		return fmt.Errorf("failed to initialize WhatsApp: %w", err)
 	}
@@ -209,7 +209,7 @@ func runWaLink(cmd *cobra.Command, args []string) error {
 }
 
 func runWaSend(cmd *cobra.Command, args []string) error {
-	client, err := whatsapp.NewClient(false)
+	client, err := whatsapp.NewClient(1, false)
 	if err != nil {
 		return err
 	}
@@ -506,7 +506,7 @@ type chatMsg struct {
 }
 
 func runWaLs(cmd *cobra.Command, args []string) error {
-	client, err := whatsapp.NewClient(false)
+	client, err := whatsapp.NewClient(1, false)
 	if err != nil {
 		return err
 	}
@@ -705,15 +705,15 @@ func printChat(chat *chatMessages) {
 }
 
 func runWaUnlink(cmd *cobra.Command, args []string) error {
-	if !whatsapp.IsLinked() {
+	if !whatsapp.IsLinked(1) {
 		fmt.Println("WhatsApp is not linked.")
 		return nil
 	}
 
-	client, err := whatsapp.NewClient(false)
+	client, err := whatsapp.NewClient(1, false)
 	if err != nil {
 		// If we can't create client, just delete the DB
-		if delErr := whatsapp.DeleteDB(); delErr != nil {
+		if delErr := whatsapp.DeleteDB(1); delErr != nil {
 			return fmt.Errorf("failed to delete session: %w", delErr)
 		}
 		fmt.Println("WhatsApp session cleared.")
@@ -728,7 +728,7 @@ func runWaUnlink(cmd *cobra.Command, args []string) error {
 		client.Disconnect()
 	}
 
-	if err := whatsapp.DeleteDB(); err != nil {
+	if err := whatsapp.DeleteDB(1); err != nil {
 		return fmt.Errorf("failed to delete session: %w", err)
 	}
 
@@ -737,13 +737,13 @@ func runWaUnlink(cmd *cobra.Command, args []string) error {
 }
 
 func runWaStatus(cmd *cobra.Command, args []string) error {
-	if !whatsapp.IsLinked() {
+	if !whatsapp.IsLinked(1) {
 		fmt.Println("WhatsApp: Not linked")
 		fmt.Println("Run \"nk wa link\" to connect your WhatsApp account.")
 		return nil
 	}
 
-	client, err := whatsapp.NewClient(false)
+	client, err := whatsapp.NewClient(1, false)
 	if err != nil {
 		return err
 	}

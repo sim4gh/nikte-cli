@@ -40,8 +40,40 @@ func init() {
 	signalLogger.Setup(&sl)
 }
 
-// GetDBPath returns the platform-specific WhatsApp database path
-func GetDBPath() (string, error) {
+// ValidateProfile reports whether profile is a usable WhatsApp profile (1-4).
+func ValidateProfile(profile int) error {
+	if profile < 1 || profile > 4 {
+		return fmt.Errorf("profile must be between 1 and 4, got %d", profile)
+	}
+	return nil
+}
+
+// dbFileName maps a profile number to its SQLite filename. Profile 1 keeps the
+// historical "whatsapp.db" name for backward compatibility; 2-4 are suffixed.
+func dbFileName(profile int) (string, error) {
+	if err := ValidateProfile(profile); err != nil {
+		return "", err
+	}
+	if profile == 1 {
+		return "whatsapp.db", nil
+	}
+	return fmt.Sprintf("whatsapp-%d.db", profile), nil
+}
+
+// sqliteDSN builds the SQLite DSN with the pragmas whatsmeow needs (WAL +
+// busy_timeout so the multi-connection pool's background writers and the
+// foreground readers coexist instead of returning SQLITE_BUSY).
+func sqliteDSN(dbPath string) string {
+	return "file:" + dbPath + "?_pragma=foreign_keys(1)&_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)"
+}
+
+// GetDBPath returns the platform-specific WhatsApp database path for the given profile.
+func GetDBPath(profile int) (string, error) {
+	name, err := dbFileName(profile)
+	if err != nil {
+		return "", err
+	}
+
 	var configDir string
 
 	switch runtime.GOOS {
@@ -79,13 +111,13 @@ func GetDBPath() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(configDir, "whatsapp.db"), nil
+	return filepath.Join(configDir, name), nil
 }
 
-// NewClient creates a new WhatsApp client backed by SQLite.
+// NewClient creates a new WhatsApp client backed by SQLite for the given profile.
 // If verbose is true, logs are written to stderr for debugging.
-func NewClient(verbose bool) (*whatsmeow.Client, error) {
-	dbPath, err := GetDBPath()
+func NewClient(profile int, verbose bool) (*whatsmeow.Client, error) {
+	dbPath, err := GetDBPath(profile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database path: %w", err)
 	}
@@ -97,13 +129,7 @@ func NewClient(verbose bool) (*whatsmeow.Client, error) {
 		log = noopLogger{}
 	}
 
-	// WAL mode + a busy_timeout are required: whatsmeow opens a multi-connection
-	// pool and writes from background goroutines right after Connect(), while
-	// foreground calls like SendMessage read concurrently (e.g. "fetch LID
-	// mappings"). Without busy_timeout, SQLite returns SQLITE_BUSY immediately
-	// instead of waiting for the lock; WAL lets readers and writers coexist.
-	dsn := "file:" + dbPath + "?_pragma=foreign_keys(1)&_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)"
-	container, err := sqlstore.New(context.Background(), "sqlite", dsn, log)
+	container, err := sqlstore.New(context.Background(), "sqlite", sqliteDSN(dbPath), log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session store: %w", err)
 	}
@@ -117,9 +143,9 @@ func NewClient(verbose bool) (*whatsmeow.Client, error) {
 	return client, nil
 }
 
-// IsLinked checks if a WhatsApp session database exists with data
-func IsLinked() bool {
-	dbPath, err := GetDBPath()
+// IsLinked checks if a WhatsApp session database exists with data for the given profile.
+func IsLinked(profile int) bool {
+	dbPath, err := GetDBPath(profile)
 	if err != nil {
 		return false
 	}
@@ -130,9 +156,9 @@ func IsLinked() bool {
 	return info.Size() > 0
 }
 
-// DeleteDB removes the WhatsApp session database and related files
-func DeleteDB() error {
-	dbPath, err := GetDBPath()
+// DeleteDB removes the WhatsApp session database and related files for the given profile.
+func DeleteDB(profile int) error {
+	dbPath, err := GetDBPath(profile)
 	if err != nil {
 		return err
 	}
