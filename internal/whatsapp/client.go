@@ -168,6 +168,33 @@ func DeleteDB(profile int) error {
 	return os.Remove(dbPath)
 }
 
+// ProfileStatus reports a profile's link state and device JID by reading only
+// the local SQLite store — it never connects to WhatsApp. It opens the store
+// only when the profile is already linked and always closes the DB handle.
+func ProfileStatus(profile int) (linked bool, jid string, err error) {
+	if err := ValidateProfile(profile); err != nil {
+		return false, "", err
+	}
+	if !IsLinked(profile) {
+		return false, "", nil
+	}
+	dbPath, err := GetDBPath(profile)
+	if err != nil {
+		return false, "", err
+	}
+	container, err := sqlstore.New(context.Background(), "sqlite", sqliteDSN(dbPath), noopLogger{})
+	if err != nil {
+		return false, "", err
+	}
+	defer container.Close()
+
+	device, err := container.GetFirstDevice(context.Background())
+	if err != nil || device.ID == nil {
+		return false, "", nil
+	}
+	return true, device.ID.String(), nil
+}
+
 // FormatNumber cleans a phone number and returns a WhatsApp JID
 func FormatNumber(number string) types.JID {
 	clean := ""

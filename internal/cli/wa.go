@@ -761,8 +761,28 @@ func runWaUnlink(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// formatProfileLine renders one row of the multi-profile status overview.
+func formatProfileLine(profile int, linked bool, id string) string {
+	if !linked {
+		return fmt.Sprintf("  %d  Not linked", profile)
+	}
+	return fmt.Sprintf("  %d  Linked      (%s)", profile, id)
+}
+
 func runWaStatus(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetInt("profile")
+
+	// No explicit -p: fast, local-only overview of all profiles (no network).
+	if !cmd.Flags().Changed("profile") {
+		fmt.Println("WhatsApp profiles:")
+		for p := 1; p <= 4; p++ {
+			linked, id, _ := whatsapp.ProfileStatus(p)
+			fmt.Println(formatProfileLine(p, linked, id))
+		}
+		return nil
+	}
+
+	// Explicit -p N: detailed status for that profile (verifies live connection).
 	if !whatsapp.IsLinked(profile) {
 		fmt.Printf("WhatsApp profile %d: Not linked\n", profile)
 		fmt.Printf("Run \"nk wa link -p %d\" to connect this account.\n", profile)

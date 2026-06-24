@@ -5,6 +5,21 @@ import (
 	"testing"
 )
 
+func TestFormatProfileLine(t *testing.T) {
+	linked := formatProfileLine(2, true, "5217...@s.whatsapp.net")
+	if !strings.Contains(linked, "2") || !strings.Contains(linked, "Linked") ||
+		!strings.Contains(linked, "5217...@s.whatsapp.net") {
+		t.Errorf("linked line = %q", linked)
+	}
+	notLinked := formatProfileLine(3, false, "")
+	if !strings.Contains(notLinked, "3") || !strings.Contains(notLinked, "Not linked") {
+		t.Errorf("not-linked line = %q", notLinked)
+	}
+	if strings.Contains(notLinked, "(") {
+		t.Errorf("not-linked line should not show an id: %q", notLinked)
+	}
+}
+
 func TestNotLinkedError(t *testing.T) {
 	if got := notLinkedError(1).Error(); got != `WhatsApp not linked. Run "nk wa link" first` {
 		t.Errorf("profile 1 message = %q", got)

@@ -42,3 +42,18 @@ func TestGetDBPathUsesProfileFilename(t *testing.T) {
 		t.Errorf("GetDBPath(1) and GetDBPath(2) must differ, both = %q", p1)
 	}
 }
+
+func TestProfileStatusUnlinked(t *testing.T) {
+	// A profile with no DB file is reported unlinked, with no error.
+	// Profile 4 is not linked in any dev/test environment.
+	linked, jid, err := ProfileStatus(4)
+	if err != nil {
+		t.Fatalf("ProfileStatus(4): unexpected error %v", err)
+	}
+	if linked || jid != "" {
+		t.Errorf("ProfileStatus(4) = (%v, %q), want (false, \"\")", linked, jid)
+	}
+	if _, _, err := ProfileStatus(0); err == nil {
+		t.Error("ProfileStatus(0): expected range error")
+	}
+}
