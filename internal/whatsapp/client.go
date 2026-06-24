@@ -67,23 +67,16 @@ func sqliteDSN(dbPath string) string {
 	return "file:" + dbPath + "?_pragma=foreign_keys(1)&_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)"
 }
 
-// GetDBPath returns the platform-specific WhatsApp database path for the given profile.
-func GetDBPath(profile int) (string, error) {
-	name, err := dbFileName(profile)
-	if err != nil {
-		return "", err
-	}
-
-	var configDir string
-
+// configDir returns the per-OS nikte config directory, creating it if needed.
+func configDir() (string, error) {
+	var dir string
 	switch runtime.GOOS {
 	case "darwin":
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
-		configDir = filepath.Join(home, "Library", "Application Support", "nikte")
-
+		dir = filepath.Join(home, "Library", "Application Support", "nikte")
 	case "windows":
 		appData := os.Getenv("APPDATA")
 		if appData == "" {
@@ -93,8 +86,7 @@ func GetDBPath(profile int) (string, error) {
 			}
 			appData = filepath.Join(home, "AppData", "Roaming")
 		}
-		configDir = filepath.Join(appData, "nikte")
-
+		dir = filepath.Join(appData, "nikte")
 	default:
 		configHome := os.Getenv("XDG_CONFIG_HOME")
 		if configHome == "" {
@@ -104,14 +96,25 @@ func GetDBPath(profile int) (string, error) {
 			}
 			configHome = filepath.Join(home, ".config")
 		}
-		configDir = filepath.Join(configHome, "nikte")
+		dir = filepath.Join(configHome, "nikte")
 	}
-
-	if err := os.MkdirAll(configDir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return "", err
 	}
+	return dir, nil
+}
 
-	return filepath.Join(configDir, name), nil
+// GetDBPath returns the platform-specific WhatsApp database path for the given profile.
+func GetDBPath(profile int) (string, error) {
+	name, err := dbFileName(profile)
+	if err != nil {
+		return "", err
+	}
+	dir, err := configDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, name), nil
 }
 
 // NewClient creates a new WhatsApp client backed by SQLite for the given profile.

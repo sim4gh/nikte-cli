@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,13 +33,32 @@ var (
 	waSendItem       string
 )
 
+// profileFromCmd reads the -p flag (a number 1-4 or an alias) and resolves it
+// to a profile number.
+func profileFromCmd(cmd *cobra.Command) (int, error) {
+	raw, _ := cmd.Flags().GetString("profile")
+	return whatsapp.ResolveProfile(raw)
+}
+
+// profileLabel returns the alias for a profile if one is set, otherwise the
+// profile number as a string. Used in user-facing messages.
+func profileLabel(profile int) string {
+	if aliases, err := whatsapp.LoadAliases(); err == nil {
+		if name := aliases.AliasOf(profile); name != "" {
+			return name
+		}
+	}
+	return strconv.Itoa(profile)
+}
+
 // notLinkedError builds the "not linked" error, naming the profile when it is
 // not the default so the user runs "nk wa link" against the right account.
 func notLinkedError(profile int) error {
-	if profile == 1 {
+	label := profileLabel(profile)
+	if profile == 1 && label == "1" {
 		return fmt.Errorf(`WhatsApp not linked. Run "nk wa link" first`)
 	}
-	return fmt.Errorf(`WhatsApp profile %d not linked. Run "nk wa link -p %d" first`, profile, profile)
+	return fmt.Errorf(`WhatsApp profile %s not linked. Run "nk wa link -p %s" first`, label, label)
 }
 
 func addWaCommands() {
@@ -129,20 +149,42 @@ Examples:
 		RunE:  runWaStatus,
 	}
 
-	waCmd.PersistentFlags().IntP("profile", "p", 1, "WhatsApp profile to use (1-4)")
+	waCmd.PersistentFlags().StringP("profile", "p", "1", "WhatsApp profile: 1-4 or an alias")
 	// Validate the profile once for every wa subcommand, before any DB/session
 	// work. root.go has no PersistentPreRunE, so this is not shadowed.
 	waCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		profile, _ := cmd.Flags().GetInt("profile")
-		return whatsapp.ValidateProfile(profile)
+		_, err := profileFromCmd(cmd)
+		return err
 	}
 
-	waCmd.AddCommand(linkCmd, sendCmd, lsCmd, unlinkCmd, statusCmd)
+	aliasCmd := &cobra.Command{
+		Use:   "alias [profile] [name]",
+		Short: "Name a WhatsApp profile so -p can take the name",
+		Long: `Manage profile aliases.
+
+  nk wa alias                 List all profiles and their aliases
+  nk wa alias 2 trabajo       Name profile 2 "trabajo" (then: nk wa send -p trabajo ...)
+  nk wa alias 2 ""            Remove profile 2's alias
+  nk wa alias --clear 2       Remove profile 2's alias
+
+Aliases are 1-32 chars of letters, digits, '-' or '_', not a bare number, and
+not "all". A name already used by another profile moves to the new one.`,
+		Args: cobra.ArbitraryArgs,
+		RunE: runWaAlias,
+	}
+	aliasCmd.Flags().String("clear", "", "Remove the alias of the given profile")
+	// Don't let an inherited, irrelevant -p block alias management.
+	aliasCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error { return nil }
+
+	waCmd.AddCommand(linkCmd, sendCmd, lsCmd, unlinkCmd, statusCmd, aliasCmd)
 	rootCmd.AddCommand(waCmd)
 }
 
 func runWaLink(cmd *cobra.Command, args []string) error {
-	profile, _ := cmd.Flags().GetInt("profile")
+	profile, err := profileFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		return fmt.Errorf("failed to initialize WhatsApp: %w", err)
@@ -231,7 +273,10 @@ func runWaLink(cmd *cobra.Command, args []string) error {
 }
 
 func runWaSend(cmd *cobra.Command, args []string) error {
-	profile, _ := cmd.Flags().GetInt("profile")
+	profile, err := profileFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		return err
@@ -529,7 +574,10 @@ type chatMsg struct {
 }
 
 func runWaLs(cmd *cobra.Command, args []string) error {
-	profile, _ := cmd.Flags().GetInt("profile")
+	profile, err := profileFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		return err
@@ -729,7 +777,10 @@ func printChat(chat *chatMessages) {
 }
 
 func runWaUnlink(cmd *cobra.Command, args []string) error {
-	profile, _ := cmd.Flags().GetInt("profile")
+	profile, err := profileFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	if !whatsapp.IsLinked(profile) {
 		fmt.Println("WhatsApp is not linked.")
 		return nil
@@ -761,16 +812,87 @@ func runWaUnlink(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// formatProfileLine renders one row of the multi-profile status overview.
-func formatProfileLine(profile int, linked bool, id string) string {
-	if !linked {
-		return fmt.Sprintf("  %d  Not linked", profile)
+func runWaAlias(cmd *cobra.Command, args []string) error {
+	aliases, err := whatsapp.LoadAliases()
+	if err != nil {
+		return err // refuse to clobber a corrupt file
 	}
-	return fmt.Sprintf("  %d  Linked      (%s)", profile, id)
+
+	clear, _ := cmd.Flags().GetString("clear")
+
+	// `nk wa alias` with no args (and no --clear): list.
+	if clear == "" && len(args) == 0 {
+		fmt.Println("WhatsApp profiles:")
+		for p := 1; p <= 4; p++ {
+			name := aliases.AliasOf(p)
+			if name == "" {
+				name = "—"
+			}
+			fmt.Printf("  %d  %s\n", p, name)
+		}
+		return nil
+	}
+
+	// Determine the target profile (from --clear or the first positional arg).
+	target := clear
+	if target == "" {
+		target = args[0]
+	}
+	profile, err := whatsapp.ResolveProfile(target)
+	if err != nil {
+		return err
+	}
+
+	// Clear: `--clear N`, or `alias N ""` (empty/whitespace name).
+	name := ""
+	if clear == "" && len(args) >= 2 {
+		name = strings.TrimSpace(args[1])
+	}
+	if clear != "" || (len(args) >= 2 && name == "") {
+		aliases = aliases.ClearAlias(profile)
+		if err := aliases.Save(); err != nil {
+			return err
+		}
+		fmt.Printf("Cleared alias for profile %d\n", profile)
+		return nil
+	}
+
+	// Need a name to set.
+	if len(args) < 2 {
+		return fmt.Errorf("usage: nk wa alias <profile> <name>  (or --clear <profile>)")
+	}
+	if err := whatsapp.ValidateAlias(name); err != nil {
+		return err
+	}
+	aliases = aliases.SetAlias(profile, name)
+	if err := aliases.Save(); err != nil {
+		return err
+	}
+	fmt.Printf("Profile %d is now \"%s\"\n", profile, name)
+	return nil
+}
+
+// formatProfileLine renders one row of the multi-profile status overview,
+// including the alias in parentheses when one is set.
+func formatProfileLine(profile int, linked bool, id string) string {
+	label := ""
+	if aliases, err := whatsapp.LoadAliases(); err == nil {
+		if name := aliases.AliasOf(profile); name != "" {
+			label = " (" + name + ")"
+		}
+	}
+	head := fmt.Sprintf("  %d%s", profile, label)
+	if !linked {
+		return head + "  Not linked"
+	}
+	return fmt.Sprintf("%s  Linked      (%s)", head, id)
 }
 
 func runWaStatus(cmd *cobra.Command, args []string) error {
-	profile, _ := cmd.Flags().GetInt("profile")
+	profile, err := profileFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 
 	// No explicit -p: fast, local-only overview of all profiles (no network).
 	if !cmd.Flags().Changed("profile") {
@@ -784,8 +906,8 @@ func runWaStatus(cmd *cobra.Command, args []string) error {
 
 	// Explicit -p N: detailed status for that profile (verifies live connection).
 	if !whatsapp.IsLinked(profile) {
-		fmt.Printf("WhatsApp profile %d: Not linked\n", profile)
-		fmt.Printf("Run \"nk wa link -p %d\" to connect this account.\n", profile)
+		fmt.Printf("WhatsApp profile %s: Not linked\n", profileLabel(profile))
+		fmt.Printf("Run \"nk wa link -p %s\" to connect this account.\n", profileLabel(profile))
 		return nil
 	}
 
@@ -795,12 +917,12 @@ func runWaStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	if client.Store.ID == nil {
-		fmt.Printf("WhatsApp profile %d: Not linked\n", profile)
-		fmt.Printf("Run \"nk wa link -p %d\" to connect this account.\n", profile)
+		fmt.Printf("WhatsApp profile %s: Not linked\n", profileLabel(profile))
+		fmt.Printf("Run \"nk wa link -p %s\" to connect this account.\n", profileLabel(profile))
 		return nil
 	}
 
-	fmt.Printf("WhatsApp profile %d: Linked\n", profile)
+	fmt.Printf("WhatsApp profile %s: Linked\n", profileLabel(profile))
 	fmt.Printf("  Device: %s\n", client.Store.ID.String())
 
 	// Try a quick connect to verify session is still valid
