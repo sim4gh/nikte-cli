@@ -14,7 +14,7 @@ func TestValidateAlias(t *testing.T) {
 		}
 	}
 	bad := []string{"", "  ", "2", "42", "all", "ALL", "con espacio", "emoji😀", "has.dot",
-		"this-name-is-way-too-long-to-be-valid-x"}
+		"-x", "-bad", "_lead", "this-name-is-way-too-long-to-be-valid-x"}
 	for _, n := range bad {
 		if err := ValidateAlias(n); err == nil {
 			t.Errorf("ValidateAlias(%q) = nil, want error", n)

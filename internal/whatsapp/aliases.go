@@ -13,7 +13,10 @@ import (
 // Aliases maps a profile number (1-4) to a human-friendly name.
 type Aliases map[int]string
 
-var aliasPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,32}$`)
+// First char must be alphanumeric so an alias can never look like a flag
+// (e.g. "-x"), keeping generated command suggestions like `nk wa link -p <alias>`
+// shell-safe.
+var aliasPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$`)
 
 // ValidateAlias checks an alias's format (not uniqueness). An alias must be
 // shell-safe, not a bare number (ambiguous with 1-4), and not the reserved
@@ -21,7 +24,7 @@ var aliasPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,32}$`)
 func ValidateAlias(name string) error {
 	name = strings.TrimSpace(name)
 	if !aliasPattern.MatchString(name) {
-		return fmt.Errorf("alias must be 1-32 chars of letters, digits, '-' or '_'")
+		return fmt.Errorf("alias must be 1-32 chars of letters, digits, '-' or '_', starting with a letter or digit")
 	}
 	if _, err := strconv.Atoi(name); err == nil {
 		return fmt.Errorf("alias cannot be a number (those select profiles 1-4)")

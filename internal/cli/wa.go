@@ -157,7 +157,6 @@ Examples:
 		return err
 	}
 
-	var aliasClear string
 	aliasCmd := &cobra.Command{
 		Use:   "alias [profile] [name]",
 		Short: "Name a WhatsApp profile so -p can take the name",
@@ -173,7 +172,7 @@ not "all". A name already used by another profile moves to the new one.`,
 		Args: cobra.ArbitraryArgs,
 		RunE: runWaAlias,
 	}
-	aliasCmd.Flags().StringVar(&aliasClear, "clear", "", "Remove the alias of the given profile")
+	aliasCmd.Flags().String("clear", "", "Remove the alias of the given profile")
 	// Don't let an inherited, irrelevant -p block alias management.
 	aliasCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error { return nil }
 
