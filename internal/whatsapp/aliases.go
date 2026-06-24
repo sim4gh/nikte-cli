@@ -117,9 +117,14 @@ func (a Aliases) saveTo(path string) error {
 	}
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, data, 0600); err != nil {
+		os.Remove(tmp)
 		return err
 	}
-	return os.Rename(tmp, path)
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	return nil
 }
 
 // LoadAliases reads the alias map from the default config location.
@@ -151,6 +156,13 @@ func ResolveProfile(raw string) (int, error) {
 		return n, nil
 	}
 	aliases, _ := LoadAliases() // tolerate a corrupt file on the read path
+	return resolveAlias(raw, aliases)
+}
+
+// resolveAlias resolves a non-numeric -p value against the given alias map.
+// Split out from ResolveProfile so it can be tested without reading the real
+// config directory.
+func resolveAlias(raw string, aliases Aliases) (int, error) {
 	if p, ok := aliases.ResolveAlias(raw); ok {
 		return p, nil
 	}

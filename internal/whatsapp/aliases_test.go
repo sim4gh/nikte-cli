@@ -91,14 +91,36 @@ func TestLoadSaveRoundTripAndCorrupt(t *testing.T) {
 }
 
 func TestResolveProfile(t *testing.T) {
+	// Numeric resolution never reads the alias file, so these stay hermetic.
 	if n, err := ResolveProfile("2"); err != nil || n != 2 {
 		t.Errorf(`ResolveProfile("2") = (%d,%v)`, n, err)
 	}
 	if _, err := ResolveProfile("5"); err == nil {
 		t.Error(`ResolveProfile("5") should error`)
 	}
-	if _, err := ResolveProfile("ghost"); err == nil {
-		t.Error(`ResolveProfile("ghost") should error (no such alias)`)
+	// Alias resolution is tested against an in-memory map so the test never
+	// touches the real config dir.
+	if p, err := resolveAlias("trabajo", Aliases{2: "trabajo"}); err != nil || p != 2 {
+		t.Errorf(`resolveAlias("trabajo") = (%d,%v), want (2,nil)`, p, err)
+	}
+	if _, err := resolveAlias("ghost", Aliases{}); err == nil {
+		t.Error(`resolveAlias("ghost") should error (no such alias)`)
+	}
+}
+
+func TestSaveToCleansUpTempOnError(t *testing.T) {
+	dir := t.TempDir()
+	// Make the destination a directory so os.Rename(tmp, path) fails, exercising
+	// the error path that must clean up the temp file.
+	path := filepath.Join(dir, "dest")
+	if err := os.Mkdir(path, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := (Aliases{2: "x"}).saveTo(path); err == nil {
+		t.Fatal("saveTo onto a directory should fail")
+	}
+	if _, err := osStat(path + ".tmp"); err == nil {
+		t.Error("stray .tmp left behind after a failed saveTo")
 	}
 }
 
