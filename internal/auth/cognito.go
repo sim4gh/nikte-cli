@@ -98,6 +98,24 @@ func RefreshTokens() (*TokenResponse, error) {
 	return &tokenResp, nil
 }
 
+// CheckAuthEndpoint verifies the Cognito auth host is reachable (DNS + TCP).
+// It does not validate credentials — any HTTP response means the host is up.
+// A network/DNS failure (e.g. a decommissioned pool) is returned as the error,
+// which is exactly the diagnostic missing from a purely local token check.
+func CheckAuthEndpoint() error {
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("GET", TokenEndpoint, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
 // EnsureValidToken checks if the token is valid and refreshes if needed
 func EnsureValidToken() (string, error) {
 	cfg := config.Get()
