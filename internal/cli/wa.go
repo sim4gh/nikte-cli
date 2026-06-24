@@ -32,6 +32,13 @@ var (
 	waSendItem       string
 )
 
+// profileFromCmd reads the -p flag (a number 1-4 or an alias) and resolves it
+// to a profile number.
+func profileFromCmd(cmd *cobra.Command) (int, error) {
+	raw, _ := cmd.Flags().GetString("profile")
+	return whatsapp.ResolveProfile(raw)
+}
+
 // notLinkedError builds the "not linked" error, naming the profile when it is
 // not the default so the user runs "nk wa link" against the right account.
 func notLinkedError(profile int) error {
@@ -129,12 +136,12 @@ Examples:
 		RunE:  runWaStatus,
 	}
 
-	waCmd.PersistentFlags().IntP("profile", "p", 1, "WhatsApp profile to use (1-4)")
+	waCmd.PersistentFlags().StringP("profile", "p", "1", "WhatsApp profile: 1-4 or an alias")
 	// Validate the profile once for every wa subcommand, before any DB/session
 	// work. root.go has no PersistentPreRunE, so this is not shadowed.
 	waCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		profile, _ := cmd.Flags().GetInt("profile")
-		return whatsapp.ValidateProfile(profile)
+		_, err := profileFromCmd(cmd)
+		return err
 	}
 
 	waCmd.AddCommand(linkCmd, sendCmd, lsCmd, unlinkCmd, statusCmd)
@@ -142,7 +149,10 @@ Examples:
 }
 
 func runWaLink(cmd *cobra.Command, args []string) error {
-	profile, _ := cmd.Flags().GetInt("profile")
+	profile, err := profileFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		return fmt.Errorf("failed to initialize WhatsApp: %w", err)
@@ -231,7 +241,10 @@ func runWaLink(cmd *cobra.Command, args []string) error {
 }
 
 func runWaSend(cmd *cobra.Command, args []string) error {
-	profile, _ := cmd.Flags().GetInt("profile")
+	profile, err := profileFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		return err
@@ -529,7 +542,10 @@ type chatMsg struct {
 }
 
 func runWaLs(cmd *cobra.Command, args []string) error {
-	profile, _ := cmd.Flags().GetInt("profile")
+	profile, err := profileFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	client, err := whatsapp.NewClient(profile, false)
 	if err != nil {
 		return err
@@ -729,7 +745,10 @@ func printChat(chat *chatMessages) {
 }
 
 func runWaUnlink(cmd *cobra.Command, args []string) error {
-	profile, _ := cmd.Flags().GetInt("profile")
+	profile, err := profileFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	if !whatsapp.IsLinked(profile) {
 		fmt.Println("WhatsApp is not linked.")
 		return nil
@@ -770,7 +789,10 @@ func formatProfileLine(profile int, linked bool, id string) string {
 }
 
 func runWaStatus(cmd *cobra.Command, args []string) error {
-	profile, _ := cmd.Flags().GetInt("profile")
+	profile, err := profileFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 
 	// No explicit -p: fast, local-only overview of all profiles (no network).
 	if !cmd.Flags().Changed("profile") {
